@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Cast Vote</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase.js"></script>
+  <script src="script.js"></script>
+</head>
+<body onload="loadElection(); loadVotePage()">
+  <div class="container">
+    <h1>Cast Your Vote</h1>
+    <div id="msg"></div>
+    <div class="form-section">
+      <input type="text" id="voterId" placeholder="Your 10-digit Voter ID" maxlength="10" required />
+      <button class="btn" onclick="proceedToVote()">Verify & Vote</button>
+    </div>
+
+    <div id="voteSection" class="hidden">
+      <h2>Select Candidate</h2>
+      <div id="candidateGrid" class="grid"></div>
+      <button class="btn" onclick="submitVote()">Confirm Vote</button>
+    </div>
+  </div>
+
+  <script>
+    let selectedCandidate = null;
+
+    async function proceedToVote() {
+      const vid = document.getElementById('voterId').value.trim();
+      if (vid.length !== 10) return showMsg('msg', 'Invalid Voter ID', 'error');
+
+      const { data: voter } = await supabase.from('voters').select('id').eq('voter_id', vid).single();
+      if (!voter) return showMsg('msg', 'Voter not found', 'error');
+
+      const { data: existing } = await supabase.from('votes').select('id').eq('voter_id', vid).single();
+      if (existing) return showMsg('msg', 'You have already voted!', 'error');
+
+      const { data: candidates } = await supabase.from('candidates').select('*').eq('approved', true);
+      const grid = document.getElementById('candidateGrid');
+      grid.innerHTML = candidates.map(c => `
+        <div class="card" onclick="selectCandidate('${c.id}', this)">
+          <img src="${c.photo_url}" style="width:60px;height:60px;border-radius:50%;">
+          <h3>${c.data.full_name}</h3>
+          <p>${c.data.position_contested}</p>
+        </div>
+      `).join('');
+      document.getElementById('voteSection').classList.remove('hidden');
+    }
+
+    function selectCandidate(id, el) {
+      document.querySelectorAll('#candidateGrid .card').forEach(c => c.style.border = 'none');
+      el.style.border = '3px solid #0f2027';
+      selectedCandidate = id;
+    }
+
+    async function submitVote() {
+      if (!selectedCandidate) return showMsg('msg', 'Select a candidate', 'error');
+      const vid = document.getElementById('voterId').value;
+      const { error } = await supabase.from('votes').insert({
+        election_id: getUrlParam('eid'),
+        voter_id: vid,
+        candidate_id: selectedCandidate
+      });
+      if (error) return showMsg('msg', error.message, 'error');
+      showMsg('msg', 'Vote cast successfully!', 'success');
+      setTimeout(() => location.href = 'election.html?eid=' + getUrlParam('eid'), 2000);
+    }
+  </script>
+</body>
+</html>
