@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Election Portal</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase.js"></script>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Election List</h1>
+      <p>Select an active election</p>
+    </header>
+    <div class="grid" id="electionList"></div>
+  </div>
+
+  <script>
+    async function loadElections() {
+      const { data } = await supabase.from('elections').select('*').order('start_date', { ascending: false });
+      const list = document.getElementById('electionList');
+      list.innerHTML = data.map(e => `
+        <div class="card" onclick="location.href='election.html?eid=${e.id}'">
+          <h3>${e.name}</h3>
+          <p>Start: ${new Date(e.start_date).toLocaleDateString()}</p>
+          <p>Status: <strong>${e.status.toUpperCase()}</strong></p>
+        </div>
+      `).join('');
+    }
+    loadElections();
+  </script>
+</body>
+</html>
