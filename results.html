@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Results</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase.js"></script>
+  <script src="script.js"></script>
+</head>
+<body onload="loadElection(); loadResults()">
+  <div class="container">
+    <h1>Election Results</h1>
+    <div id="results"></div>
+  </div>
+
+  <script>
+    async function loadResults() {
+      const { data: votes } = await supabase.from('votes').select('candidate_id');
+      const { data: candidates } = await supabase.from('candidates').select('*').eq('approved', true);
+
+      const tally = {};
+      votes.forEach(v => tally[v.candidate_id] = (tally[v.candidate_id] || 0) + 1);
+
+      const results = candidates.map(c => ({
+        ...c,
+        votes: tally[c.id] || 0
+      })).sort((a, b) => b.votes - a.votes);
+
+      const el = document.getElementById('results');
+      el.innerHTML = results.map((c, i) => `
+        <div class="form-section" style="display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <strong>${i+1}. ${c.data.full_name}</strong> (${c.data.position_contested})<br>
+            <em>${c.data.vision.substring(0, 80)}...</em>
+          </div>
+          <div style="font-size:1.5rem;font-weight:bold;color:#0f2027;">
+            ${c.votes} votes
+          </div>
+        </div>
+      `).join('');
+    }
+  </script>
+</body>
+</html>
