@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Election Dashboard</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase.js"></script>
+  <script src="script.js"></script>
+</head>
+<body onload="loadElection()">
+  <div class="container">
+    <header>
+      <h1 id="electionName">Loading...</h1>
+    </header>
+
+    <div class="grid">
+      <div class="card" onclick="location.href='voter-register.html?eid='+getUrlParam('eid')">
+        <h3>Register Voter ID</h3>
+      </div>
+      <div class="card" onclick="location.href='eligibility.html?eid='+getUrlParam('eid')">
+        <h3>Eligibility Check</h3>
+      </div>
+      <div class="card nomination-only" onclick="location.href='candidate-register.html?eid='+getUrlParam('eid')">
+        <h3>Register as Candidate</h3>
+      </div>
+      <div class="card" onclick="location.href='candidates.html?eid='+getUrlParam('eid')">
+        <h3>Know Your Candidate</h3>
+      </div>
+      <div class="card voting-only" onclick="location.href='vote.html?eid='+getUrlParam('eid')">
+        <h3>Proceed to Vote</h3>
+      </div>
+      <div class="card result-only" onclick="location.href='results.html?eid='+getUrlParam('eid')">
+        <h3>View Results</h3>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
