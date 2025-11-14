@@ -14,29 +14,24 @@
     <h1>Election Results</h1>
     <div id="results"></div>
   </div>
-
   <script>
     async function loadResults() {
-      const { data: votes } = await supabase.from('votes').select('candidate_id');
-      const { data: candidates } = await supabase.from('candidates').select('*').eq('approved', true);
-
+      const eid = getUrlParam('eid');
+      const { data: votes } = await supabase.from('votes').select('candidate_id').eq('election_id', eid);
+      const { data: candidates } = await supabase.from('candidates').select('*').eq('election_id', eid).eq('approved', true);
       const tally = {};
       votes.forEach(v => tally[v.candidate_id] = (tally[v.candidate_id] || 0) + 1);
-
       const results = candidates.map(c => ({
         ...c,
         votes: tally[c.id] || 0
       })).sort((a, b) => b.votes - a.votes);
-
       const el = document.getElementById('results');
       el.innerHTML = results.map((c, i) => `
-        <div class="form-section" style="display:flex;justify-content:space-between;align-items:center;">
+        <div class="form-section" style="display:flex;justify-content:space-between;align-items:center; ${i === 0 ? 'border: 2px solid green;' : ''}">
           <div>
-            <strong>${i+1}. ${c.data.full_name}</strong> (${c.data.position_contested})<br>
-            <em>${c.data.vision.substring(0, 80)}...</em>
-          </div>
-          <div style="font-size:1.5rem;font-weight:bold;color:#0f2027;">
-            ${c.votes} votes
+            <img src="${c.photo_url}" style="width:50px;height:50px;border-radius:50%;">
+            <strong>${i === 0 ? 'Winner: ' : ''}${c.data.full_name}</strong> (${c.votes} votes)
+            <br><em>${c.data.vision.substring(0, 80)}...</em>
           </div>
         </div>
       `).join('');
