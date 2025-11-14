@@ -8,33 +8,91 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase.js"></script>
   <script src="script.js"></script>
+  <style>
+    .error { color: #dc2626; background: #fee2e2; padding: 12px; border-radius: 8px; margin: 15px 0; font-weight: 500; }
+    .status { font-weight: bold; margin: 10px 0; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-top: 30px; }
+    .card {
+      background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      cursor: pointer; transition: 0.2s; text-align: center; border: 2px solid #e5e7eb;
+    }
+    .card:hover { transform: translateY(-4px); box-shadow: 0 8px 20px rgba(0,0,0,0.12); border-color: #1d4ed8; }
+    .card h3 { margin: 0 0 8px; color: #1e293b; }
+    .card p { margin: 0; color: #64748b; font-size: 0.9rem; }
+    .hidden { display: none !important; }
+  </style>
 </head>
-<body onload="loadElection()">
+<body>
+
   <div class="container">
-    <header>
-      <h1 id="electionName">Loading...</h1>
+    <header style="text-align:center; margin-bottom: 30px;">
+      <h1 id="electionName" style="margin:0; color:#1e293b;">Loading Election...</h1>
+      <p id="electionStatus" class="status" style="color:orange;">Initializing...</p>
+      <div id="errorMsg" class="error" style="display:none;"></div>
     </header>
 
-    <div class="grid">
-      <div class="card" onclick="location.href='voter-register.html?eid='+getUrlParam('eid')">
+    <div class="grid" id="optionGrid">
+      <div class="card" data-page="voter-register.html">
         <h3>Register Voter ID</h3>
+        <p>Create your 10-digit voter ID</p>
       </div>
-      <div class="card" onclick="location.href='eligibility.html?eid='+getUrlParam('eid')">
+      <div class="card" data-page="eligibility.html">
         <h3>Eligibility Check</h3>
+        <p>Verify age 18+ and citizenship</p>
       </div>
-      <div class="card nomination-only" onclick="location.href='candidate-register.html?eid='+getUrlParam('eid')">
+      <div class="card nomination-only" data-page="candidate-register.html">
         <h3>Register as Candidate</h3>
+        <p>Nominate yourself (closes before voting)</p>
       </div>
-      <div class="card" onclick="location.href='candidates.html?eid='+getUrlParam('eid')">
+      <div class="card" data-page="candidates.html">
         <h3>Know Your Candidate</h3>
+        <p>View profiles and manifestos</p>
       </div>
-      <div class="card voting-only" onclick="location.href='vote.html?eid='+getUrlParam('eid')">
+      <div class="card voting-only" data-page="vote.html">
         <h3>Proceed to Vote</h3>
+        <p>Cast your secure vote</p>
       </div>
-      <div class="card result-only" onclick="location.href='results.html?eid='+getUrlParam('eid')">
+      <div class="card result-only" data-page="results.html">
         <h3>View Results</h3>
+        <p>Live tally and winner</p>
       </div>
     </div>
   </div>
+
+  <script>
+    // Safe getUrlParam
+    function getUrlParam(name) {
+      return new URLSearchParams(location.search).get(name);
+    }
+
+    // Click handler for all cards
+    document.querySelectorAll('.card').forEach(card => {
+      card.addEventListener('click', () => {
+        const page = card.getAttribute('data-page');
+        const eid = getUrlParam('eid');
+        if (eid) {
+          location.href = `${page}?eid=${eid}`;
+        } else {
+          showError('Election ID missing. Cannot proceed.');
+        }
+      });
+    });
+
+    // Show error
+    function showError(msg) {
+      const el = document.getElementById('errorMsg');
+      el.textContent = msg;
+      el.style.display = 'block';
+    }
+
+    // Auto-init
+    document.addEventListener('DOMContentLoaded', () => {
+      const eid = getUrlParam('eid');
+      if (!eid) {
+        showError('No election ID in URL. Redirecting...');
+        setTimeout(() => location.href = 'index.html', 2000);
+      }
+    });
+  </script>
 </body>
 </html>
