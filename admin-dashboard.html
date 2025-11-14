@@ -3,53 +3,209 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Admin Panel</title>
+  <title>Admin Dashboard</title>
   <link rel="stylesheet" href="styles.css" />
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="supabase.js"></script>
+  <style>
+    .tab { display: none; }
+    .tab.active { display: block; }
+    .nav-tabs { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+    .nav-tabs button { padding: 10px 15px; background: #0f2027; color: white; border: none; cursor: pointer; border-radius: 5px; }
+    .nav-tabs button.active { background: #1e3a8a; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+    @media (max-width: 768px) { .form-grid { grid-template-columns: 1fr; } }
+    .election-card { background: #f8fafc; padding: 15px; border-radius: 8px; margin-bottom: 10px; }
+  </style>
 </head>
-<body onload="checkAdmin()">
+<body>
   <div class="container">
-    <h1>Admin Dashboard</h1>
-    <button class="btn" onclick="logout()">Logout</button>
-    <h2>Pending Candidates</h2>
-    <div id="pending"></div>
+    <header style="text-align:center; margin-bottom: 30px;">
+      <h1>Admin Dashboard</h1>
+      <p>Full control over elections, voters, and results</p>
+      <button class="btn" onclick="logout()" style="position:absolute; right:20px; top:20px;">Logout</button>
+    </header>
+
+    <div class="nav-tabs">
+      <button onclick="openTab('elections')" class="active">Elections</button>
+      <button onclick="openTab('voters')">Voters</button>
+      <button onclick="openTab('results')">Results</button>
+      <button onclick="openTab('settings')">Settings</button>
+    </div>
+
+    <!-- ELECTIONS TAB -->
+    <div id="elections" class="tab active">
+      <h2>Create New Election</h2>
+      <div class="form-section">
+        <input type="text" id="electionName" placeholder="Election Name" />
+        <input type="date" id="startDate" />
+        <input type="date" id="nominationEnd" />
+        <input type="date" id="votingEnd" />
+        <button class="btn" onclick="createElection()">Create Election</button>
+      </div>
+
+      <h2 style="margin-top: 30px;">Active Elections</h2>
+      <div id="electionList"></div>
+    </div>
+
+    <!-- VOTERS TAB -->
+    <div id="voters" class="tab">
+      <h2>Export Voters</h2>
+      <button class="btn" onclick="exportVoters()">Download CSV</button>
+      <div id="voterStats" style="margin-top: 20px;"></div>
+    </div>
+
+    <!-- RESULTS TAB -->
+    <div id="results" class="tab">
+      <h2>Election Results</h2>
+      <select id="resultElection" onchange="loadResults()"></select>
+      <div id="resultDisplay" style="margin-top: 20px;"></div>
+    </div>
+
+    <!-- SETTINGS TAB -->
+    <div id="settings" class="tab">
+      <h2>System Settings</h2>
+      <p><strong>Current Time:</strong> <span id="currentTime"></span></p>
+      <button class="btn" onclick="forceEndAll()">End All Elections Now</button>
+    </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase.js"></script>
   <script>
-    async function checkAdmin() {
-      const token = localStorage.getItem('adminToken');
-      if (!token) return location.href = 'admin-login.html';
-      supabase.auth.setAuth(token);
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user.email !== 'admin@election.com') return location.href = 'admin-login.html';
-      loadPending();
+    // === SECURITY: Block direct access ===
+    const token = localStorage.getItem('adminToken');
+    if (!token) {
+      location.href = 'admin-login.html';
     }
 
-    async function loadPending() {
-      const { data } = await supabase.from('candidates').select('*').eq('approved', false);
-      const el = document.getElementById('pending');
-      el.innerHTML = data.map(c => `
-        <div class="form-section">
-          <strong>${c.data.full_name}</strong> - ${c.data.position_contested}
-          <button class="btn" onclick="approve('${c.id}')">Approve</button>
-          <button class="btn" style="background:red" onclick="reject('${c.id}')">Reject</button>
-        </div>
-      `).join('');
-    }
+    // Auto logout after 1 hour
+    setTimeout(() => {
+      localStorage.removeItem('adminToken');
+      location.href = 'admin-login.html';
+    }, 3600000);
 
-    window.approve = async (id) => {
-      await supabase.from('candidates').update({ approved: true }).eq('id', id);
-      loadPending();
-    };
-    window.reject = async (id) => {
-      await supabase.from('candidates').delete().eq('id', id);
-      loadPending();
-    };
     function logout() {
       localStorage.removeItem('adminToken');
       location.href = 'admin-login.html';
     }
+
+    function openTab(tabName) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.nav-tabs button').forEach(b => b.classList.remove('active'));
+      document.getElementById(tabName).classList.add('active');
+      document.querySelector(`button[onclick="openTab('${tabName}')"]`).classList.add('active');
+
+      if (tabName === 'elections') loadElections();
+      if (tabName === 'voters') loadVoterStats();
+      if (tabName === 'results') loadElectionSelect();
+    }
+
+    // === LOAD ELECTIONS ===
+    async function loadElections() {
+      const { data } = await supabase.from('elections').select('*').order('start_date', { ascending: false });
+      const list = document.getElementById('electionList');
+      list.innerHTML = data.map(e => `
+        <div class="election-card">
+          <strong>${e.name}</strong><br>
+          Start: ${new Date(e.start_date).toLocaleDateString()} |
+          Nomination End: ${new Date(e.nomination_end).toLocaleDateString()} |
+          Voting End: ${new Date(e.voting_end).toLocaleDateString()}<br>
+          Status: <strong>${e.status.toUpperCase()}</strong>
+          <button style="float:right; font-size:0.8rem;" onclick="deleteElection('${e.id}')">Delete</button>
+        </div>
+      `).join('');
+    }
+
+    async function createElection() {
+      const name = document.getElementById('electionName').value;
+      const start = document.getElementById('startDate').value;
+      const nomEnd = document.getElementById('nominationEnd').value;
+      const voteEnd = document.getElementById('votingEnd').value;
+
+      if (!name || !start || !nomEnd || !voteEnd) return alert('Fill all fields');
+
+      const { error } = await supabase.from('elections').insert({
+        name, start_date: start, nomination_end: nomEnd, voting_end: voteEnd, status: 'upcoming'
+      });
+
+      if (error) alert(error.message);
+      else {
+        alert('Election created!');
+        loadElections();
+      }
+    }
+
+    async function deleteElection(id) {
+      if (!confirm('Delete this election?')) return;
+      await supabase.from('elections').delete().eq('id', id);
+      loadElections();
+    }
+
+    // === VOTERS ===
+    async function loadVoterStats() {
+      const { count } = await supabase.from('voters').select('*', { count: 'exact', head: true });
+      document.getElementById('voterStats').innerHTML = `<p><strong>Total Registered Voters:</strong> ${count}</p>`;
+    }
+
+    async function exportVoters() {
+      const { data } = await supabase.from('voters').select('*');
+      const csv = [
+        ['Voter ID', 'Name', 'DOB', 'Province', 'District', 'Municipality', 'Tole', 'Citizenship'],
+        ...data.map(v => [
+          v.voter_id, v.full_name, v.birth_date,
+          v.location.province, v.location.district, v.location.municipality, v.location.tole,
+          v.citizenship_no
+        ])
+      ].map(row => row.join(',')).join('\n');
+
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'voters.csv'; a.click();
+    }
+
+    // === RESULTS ===
+    async function loadElectionSelect() {
+      const { data } = await supabase.from('elections').select('id, name');
+      const select = document.getElementById('resultElection');
+      select.innerHTML = '<option value="">Select Election</option>' + data.map(e => `<option value="${e.id}">${e.name}</option>`).join('');
+    }
+
+    async function loadResults() {
+      const eid = document.getElementById('resultElection').value;
+      if (!eid) return;
+
+      const { data: votes } = await supabase.from('votes').select('candidate_id').eq('election_id', eid);
+      const { data: candidates } = await supabase.from('candidates').select('id, name').eq('election_id', eid);
+
+      const tally = {};
+      votes.forEach(v => tally[v.candidate_id] = (tally[v.candidate_id] || 0) + 1);
+
+      const result = candidates.map(c => ({
+        name: c.name,
+        votes: tally[c.id] || 0
+      })).sort((a,b) => b.votes - a.votes);
+
+      document.getElementById('resultDisplay').innerHTML = `
+        <h3>Results</h3>
+        ${result.map(r => `<p><strong>${r.name}:</strong> ${r.votes} votes</p>`).join('')}
+        ${result[0] ? `<p style="color:green; font-weight:bold;">Winner: ${result[0].name}</p>` : ''}
+      `;
+    }
+
+    async function forceEndAll() {
+      if (!confirm('End ALL elections now?')) return;
+      await supabase.from('elections').update({ status: 'completed' }).neq('status', 'completed');
+      alert('All elections ended.');
+    }
+
+    // Clock
+    setInterval(() => {
+      document.getElementById('currentTime').textContent = new Date().toLocaleString();
+    }, 1000);
+
+    // Init
+    loadElections();
+    openTab('elections');
   </script>
 </body>
 </html>
