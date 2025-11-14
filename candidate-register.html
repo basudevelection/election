@@ -5,9 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Register as Candidate</title>
   <link rel="stylesheet" href="styles.css" />
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="supabase.js"></script>
-  <script src="script.js"></script>
 </head>
 <body onload="loadElection(); populateProvinces()">
   <div class="container">
@@ -37,6 +34,18 @@
         <input type="email" id="email" placeholder="Email Address" required />
         <label>Profile Photo (passport-size):</label>
         <input type="file" id="profilePhoto" accept="image/*" required />
+        <label>Address:</label>
+        <select id="province" onchange="populateDistricts()" required>
+          <option value="">Select Province</option>
+        </select>
+        <select id="district" onchange="populateMunicipalities()" required>
+          <option value="">Select District</option>
+        </select>
+        <select id="municipality" required>
+          <option value="">Select Municipality</option>
+        </select>
+        <input type="text" id="tole" placeholder="Tole / Street Name" required />
+        <input type="number" id="ward" placeholder="Ward Number" required />
       </div>
       <div class="form-section">
         <h3>Educational and Professional Details</h3>
@@ -98,30 +107,40 @@
       <button type="submit" class="btn">Register as Candidate</button>
     </form>
   </div>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase.js"></script>
+  <script src="script.js"></script>
   <script>
     async function registerCandidate() {
-      // Validate required fields (add more as needed)
-      const required = ['fullName', 'dob', 'gender', 'marital', 'contact', 'email', 'profilePhoto', 'highestQual', 'institution', 'yearCompletion', 'profExp', 'occupation', 'skills', 'party', 'position', 'wardConst', 'manifesto', 'motto', 'citizenshipNo', 'criminalRecord', 'affidavit', 'nominationDate', 'budget', 'fundingSource', 'bankAcct', 'auditor', 'vision'];
+      const required = ['fullName', 'dob', 'gender', 'marital', 'contact', 'email', 'profilePhoto', 'province', 'district', 'municipality', 'tole', 'ward', 'highestQual', 'institution', 'yearCompletion', 'profExp', 'occupation', 'skills', 'party', 'position', 'wardConst', 'manifesto', 'motto', 'citizenshipNo', 'criminalRecord', 'affidavit', 'nominationDate', 'budget', 'fundingSource', 'bankAcct', 'auditor', 'vision'];
       for (let id of required) {
         if (!document.getElementById(id).value) return showMsg('msg', `Missing: ${id}`, 'error');
       }
-      // Upload files
       const photoFile = document.getElementById('profilePhoto').files[0];
       const symbolFile = document.getElementById('partySymbol').files[0];
       const clearanceFile = document.getElementById('clearanceCert').files[0];
       const affidavitFile = document.getElementById('affidavit').files[0];
-      let photoUrl = '', symbolUrl = '';
+      let photoUrl = '', symbolUrl = '', clearanceUrl = '', affidavitUrl = '';
       if (photoFile) {
-        const { data, error } = await supabase.storage.from('photos').upload(`profiles/${photoFile.name}`, photoFile);
+        const { data, error } = await supabase.storage.from('photos').upload(`profiles/${Date.now()}_${photoFile.name}`, photoFile);
         if (error) return showMsg('msg', error.message, 'error');
         photoUrl = supabase.storage.from('photos').getPublicUrl(data.path).data.publicUrl;
       }
       if (symbolFile) {
-        const { data, error } = await supabase.storage.from('photos').upload(`symbols/${symbolFile.name}`, symbolFile);
+        const { data, error } = await supabase.storage.from('photos').upload(`symbols/${Date.now()}_${symbolFile.name}`, symbolFile);
         if (error) return showMsg('msg', error.message, 'error');
         symbolUrl = supabase.storage.from('photos').getPublicUrl(data.path).data.publicUrl;
       }
-      // (Similar for clearance and affidavit if needed, store urls in data json)
+      if (clearanceFile) {
+        const { data, error } = await supabase.storage.from('documents').upload(`clearance/${Date.now()}_${clearanceFile.name}`, clearanceFile);
+        if (error) return showMsg('msg', error.message, 'error');
+        clearanceUrl = supabase.storage.from('documents').getPublicUrl(data.path).data.publicUrl;
+      }
+      if (affidavitFile) {
+        const { data, error } = await supabase.storage.from('documents').upload(`affidavit/${Date.now()}_${affidavitFile.name}`, affidavitFile);
+        if (error) return showMsg('msg', error.message, 'error');
+        affidavitUrl = supabase.storage.from('documents').getPublicUrl(data.path).data.publicUrl;
+      }
       const data = {
         full_name: document.getElementById('fullName').value,
         nickname: document.getElementById('nickname').value,
@@ -130,6 +149,13 @@
         marital: document.getElementById('marital').value,
         contact: document.getElementById('contact').value,
         email: document.getElementById('email').value,
+        location: {
+          province: document.getElementById('province').value,
+          district: document.getElementById('district').value,
+          municipality: document.getElementById('municipality').value,
+          tole: document.getElementById('tole').value,
+          ward: document.getElementById('ward').value
+        },
         highest_qual: document.getElementById('highestQual').value,
         institution: document.getElementById('institution').value,
         year_completion: document.getElementById('yearCompletion').value,
@@ -164,10 +190,13 @@
         data,
         photo_url: photoUrl,
         symbol_url: symbolUrl,
+        clearance_url: clearanceUrl,
+        affidavit_url: affidavitUrl,
         approved: false
       });
       if (error) return showMsg('msg', error.message, 'error');
       showMsg('msg', 'Candidate registered! Pending admin approval.', 'success');
+      document.querySelector('form').reset();
     }
   </script>
 </body>
