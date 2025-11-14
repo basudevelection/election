@@ -1,5 +1,5 @@
 // ========================================
-// script.js – Unified Election System Logic
+// script.js – FINAL FIXED VERSION
 // ========================================
 
 const ADMIN_EMAIL = 'admin@election.com';
@@ -61,8 +61,7 @@ function populateProvinces() {
 
   select.innerHTML = '<option value="">Select Province</option>';
   nepalData.forEach(p => {
-    const opt = new Option(p.name, p.id);
-    select.add(opt);
+    select.add(new Option(p.name, p.id));
   });
 }
 
@@ -120,7 +119,7 @@ async function loadElection() {
 
   const { data, error } = await supabase
     .from('elections')
-    .select('*')
+    .select('id, name, start_date, nomination_end, voting_end, status')
     .eq('id', eid)
     .single();
 
@@ -144,8 +143,8 @@ function updateElectionStatus() {
 
   const now = new Date();
   const start = new Date(currentElection.start_date);
-  const end = new Date(currentElection.voting_end || currentElection.end_date);
-  const nom = new Date(currentElection.nomination_end || currentElection.nomination_deadline);
+  const end = new Date(currentElection.voting_end);
+  const nom = new Date(currentElection.nomination_end);
 
   let status = 'upcoming';
   if (now >= start && now <= end) status = 'active';
@@ -162,7 +161,6 @@ function updateElectionStatus() {
     el.style.display = status === 'ended' ? 'block' : 'none';
   });
 
-  // Update status text
   const statusEl = document.getElementById('electionStatus');
   if (statusEl) {
     statusEl.textContent = status.toUpperCase();
@@ -244,24 +242,17 @@ async function submitVote() {
 }
 
 // ========================================
-// AUTO-INIT ON PAGE LOAD
+// AUTO-INIT
 // ========================================
 document.addEventListener('DOMContentLoaded', () => {
-  // Location selects
   const provinceEl = document.getElementById('province');
   const districtEl = document.getElementById('district');
 
   if (provinceEl) provinceEl.addEventListener('change', populateDistricts);
   if (districtEl) districtEl.addEventListener('change', populateMunicipalities);
 
-  // Election page
   if (document.getElementById('electionName')) {
     loadElection();
-    setInterval(updateElectionStatus, 10000); // Update every 10s
-  }
-
-  // Admin dashboard
-  if (document.getElementById('electionList')) {
-    // Already handled in admin-dashboard.html
+    setInterval(updateElectionStatus, 10000);
   }
 });
