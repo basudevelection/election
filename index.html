@@ -3,53 +3,36 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Online Election System</title>
+  <title>Election Portal</title>
   <link rel="stylesheet" href="styles.css" />
-</head>
-<body onload="loadElections()">
-  <div class="container">
-    <h1>Online Election System</h1>
-    <p style="text-align: center; color: #64748b;">Welcome! Register as a voter, explore candidates, or cast your vote.</p>
-    <div class="nav-tabs">
-      <a href="voter-register.html" class="btn">Register as Voter</a>
-      <a href="admin-login.html" class="btn" style="background: #1e293b;">Admin Login</a>
-    </div>
-    <h2 style="margin-top: 30px;">Available Elections</h2>
-    <div id="electionList"></div>
-  </div>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase.js"></script>
   <script src="script.js"></script>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Election List</h1>
+      <p>Select an active election</p>
+    </header>
+    <div class="grid" id="electionList"></div>
+  </div>
+  <footer style="text-align: center; padding: 20px; background: rgba(255,255,255,0.1); margin-top: 40px; border-top: 1px solid #fff;">
+    <p style="font-size: 0.9rem; color: #a8e6cf;">If you are the admin of this site, <a href="admin-login.html" style="color: #fff; text-decoration: underline; font-weight: bold;">click here to login</a>.</p>
+  </footer>
   <script>
     async function loadElections() {
-      const { data } = await supabase
-        .from('elections')
-        .select('*')
-        .in('status', ['upcoming', 'active'])
-        .order('created_at', { ascending: false });
+      const { data } = await supabase.from('elections').select('*').order('start_date', { ascending: false });
       const list = document.getElementById('electionList');
       list.innerHTML = data.map(e => `
-        <div class="election-card">
-          <strong>${e.name}</strong><br>
-          <small>
-            Start: ${formatDate(e.start_date)} |
-            Nomination End: ${formatDate(e.nomination_end)} |
-            Voting End: ${formatDate(e.voting_end)}
-          </small><br>
-          <strong style="color: ${e.status === 'active' ? 'green' : 'orange'}">
-            ${e.status.toUpperCase()}
-          </strong><br>
-          <div style="margin-top: 10px;">
-            <a href="candidates.html?eid=${e.id}" class="btn" style="padding: 8px 16px;">View Candidates</a>
-            ${e.status === 'active' ? `<a href="vote.html?eid=${e.id}" class="btn" style="padding: 8px 16px; background: #16a34a;">Vote Now</a>` : ''}
-            ${new Date() < new Date(e.start_date) ? `<a href="candidate-register.html?eid=${e.id}" class="btn" style="padding: 8px 16px; background: #ca8a04;">Register as Candidate</a>` : ''}
-          </div>
+        <div class="card" onclick="location.href='election.html?eid=${e.id}'">
+          <h3>${e.name}</h3>
+          <p>Start: ${new Date(e.start_date).toLocaleDateString()}</p>
+          <p>Status: <strong>${e.status.toUpperCase()}</strong></p>
         </div>
       `).join('');
     }
-    function formatDate(date) {
-      return new Date(date).toLocaleDateString('en-GB');
-    }
+    loadElections();
   </script>
 </body>
 </html>
