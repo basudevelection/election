@@ -5,15 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Admin Dashboard</title>
   <link rel="stylesheet" href="styles.css" />
-  <style>
-    /* (Your existing styles) */
-  </style>
 </head>
 <body>
   <div class="container">
-    <header style="position:relative; text-align:center; margin-bottom: 30px;">
+    <header style="position: relative; text-align: center; margin-bottom: 30px;">
       <h1>Election Admin Panel</h1>
-      <p style="color:#64748b;">Full control: Create elections, manage voters, candidates, votes, view results</p>
+      <p style="color: #64748b;">Full control: Create elections, manage voters, candidates, votes, view results</p>
       <button class="btn logout-btn" onclick="logout()">Logout</button>
     </header>
     <div class="nav-tabs">
@@ -52,12 +49,12 @@
     <!-- VOTERS TAB -->
     <div id="voters" class="tab">
       <h2>Registered Voters</h2>
-      <button class="btn" onclick="exportVoters()" style="width:auto; padding:12px 20px;">
+      <button class="btn" onclick="exportVoters()" style="width: auto; padding: 12px 20px;">
         Export All Voters (CSV)
       </button>
-      <div id="voterList" style="margin-top: 20px;"></div> <!-- Added for CRUD -->
+      <div id="voterList" style="margin-top: 20px;"></div>
     </div>
-    <!-- CANDIDATES TAB (NEW) -->
+    <!-- CANDIDATES TAB -->
     <div id="candidates" class="tab">
       <h2>Manage Candidates</h2>
       <select id="candidateElection" onchange="loadCandidatesAdmin()">
@@ -65,7 +62,7 @@
       </select>
       <div id="candidateAdminList" style="margin-top: 20px;"></div>
     </div>
-    <!-- VOTES TAB (NEW) -->
+    <!-- VOTES TAB -->
     <div id="votes" class="tab">
       <h2>Manage Votes</h2>
       <select id="voteElection" onchange="loadVotes()">
@@ -75,68 +72,212 @@
     </div>
     <!-- RESULTS TAB -->
     <div id="results" class="tab">
-      <!-- (Your existing results code) -->
+      <h2>View Election Results</h2>
+      <select id="resultElection" onchange="loadResults()" style="margin-bottom: 15px;">
+        <option value="">Select Election</option>
+      </select>
+      <div id="resultDisplay" style="padding: 15px; background: #f8fafc; border-radius: 8px; min-height: 100px;"></div>
     </div>
     <!-- SETTINGS TAB -->
     <div id="settings" class="tab">
-      <!-- (Your existing settings code) -->
+      <h2>System Control</h2>
+      <p><strong>Server Time:</strong> <span id="currentTime" style="font-family: monospace;"></span></p>
+      <button class="btn" onclick="forceEndAll()" style="background: #dc2626; margin-top: 15px;">
+        End ALL Elections Now
+      </button>
+      <p style="margin-top: 20px; font-size: 0.9rem; color: #64748b;">
+        Use only in emergency. All voting will stop immediately.
+      </p>
     </div>
   </div>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase.js"></script>
+  <script src="script.js"></script>
   <script>
-    // (Your existing security, tab system, elections management, voters, results, settings)
-    // Added for Candidates tab
+    // Security: Block direct access
+    const adminToken = localStorage.getItem('adminToken');
+    if (!adminToken) {
+      alert('Access denied. Redirecting to login...');
+      location.href = 'admin-login.html';
+    }
+    // Auto logout after 1 hour
+    setTimeout(() => {
+      localStorage.removeItem('adminToken');
+      alert('Session expired. Please log in again.');
+      location.href = 'admin-login.html';
+    }, 3600000);
+    function logout() {
+      if (confirm('Logout now?')) {
+        localStorage.removeItem('adminToken');
+        location.href = 'admin-login.html';
+      }
+    }
+    // Prevent back button
+    window.addEventListener('pageshow', (e) => {
+      if (e.persisted || !localStorage.getItem('adminToken')) {
+        location.href = 'admin-login.html';
+      }
+    });
+    // Tab System
+    function openTab(tabName) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.nav-tabs button').forEach(b => b.classList.remove('active'));
+      document.getElementById(tabName).classList.add('active');
+      document.querySelector(`button[onclick="openTab('${tabName}')"]`).classList.add('active');
+      if (tabName === 'elections') loadElections();
+      if (tabName === 'voters') loadVoters();
+      if (tabName === 'candidates') loadElectionSelectAdmin('candidateElection');
+      if (tabName === 'votes') loadElectionSelectAdmin('voteElection');
+      if (tabName === 'results') loadElectionSelect();
+    }
+    // Elections Management
+    async function loadElections() {
+      const { data, error } = await supabase
+        .from('elections')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) {
+        document.getElementById('electionList').innerHTML = `<p class="error">Error: ${error.message}</p>`;
+        return;
+      }
+      if (data.length === 0) {
+        document.getElementById('electionList').innerHTML = `<p>No elections created yet.</p>`;
+        return;
+      }
+      document.getElementById('electionList').innerHTML = data.map(e => `
+        <div class="election-card">
+          <strong>${e.name}</strong><br>
+          <small>
+            Start: ${formatDate(e.start_date)} |
+            Nomination End: ${formatDate(e.nomination_end)} |
+            Voting End: ${formatDate(e.voting_end)}
+          </small><br>
+          <strong style="color: ${e.status === 'active' ? 'green' domestication: pointer; cursor: pointer;" onclick="deleteElection('${e.id}')">Delete</button>
+        </div>
+      `).join('');
+    }
+    async function createElection() {
+      const name = document.getElementById('electionName').value.trim();
+      const start = document.getElementById('startDate').value;
+      const nomEnd = document.getElementById('nominationEnd').value;
+      const voteEnd = document.getElementById('votingEnd').value;
+      if (!name || !start || !nomEnd || !voteEnd) {
+        alert('Please fill all fields');
+        return;
+      }
+      const { error } = await supabase.from('elections').insert({
+        name,
+        start_date: start,
+        nomination_end: nomEnd,
+        voting_end: voteEnd,
+        status: 'upcoming'
+      });
+      if (error) {
+        alert('Error: ' + error.message);
+      } else {
+        alert('Election created successfully!');
+        document.getElementById('electionName').value = '';
+        loadElections();
+      }
+    }
+    async function deleteElection(id) {
+      if (!confirm('Delete this election permanently? All data will be lost.')) return;
+      await supabase.from('votes').delete().eq('election_id', id);
+      await supabase.from('candidates').delete().eq('election_id', id);
+      await supabase.from('elections').delete().eq('id', id);
+      loadElections();
+    }
+    // Voters
+    async function loadVoters() {
+      const { data, error } = await supabase.from('voters').select('*');
+      if (error) {
+        document.getElementById('voterList').innerHTML = `<p class="error">Error: ${error.message}</p>`;
+        return;
+      }
+      document.getElementById('voterList').innerHTML = data.map(v => `
+        <div class="election-card">
+          <strong>${v.full_name}</strong> (Voter ID: ${v.voter_id})<br>
+          <button onclick="deleteVoter('${v.id}')">Delete</button>
+        </div>
+      `).join('');
+    }
+    async function deleteVoter(id) {
+      if (!confirm('Delete this voter?')) return;
+      const { error } = await supabase.from('voters').delete().eq('id', id);
+      if (error) alert('Error: ' + error.message);
+      else loadVoters();
+    }
+    async function exportVoters() {
+      const { data } = await supabase.from('voters').select('*');
+      if (!data || data.length === 0) {
+        alert('No voters to export');
+        return;
+      }
+      const csv = [
+        'Voter ID,Full Name,DOB,Province,District,Municipality,Tole,Ward,Citizenship No',
+        ...data.map(v => [
+          v.voter_id,
+          v.full_name,
+          v.birth_date,
+          v.location?.province || '',
+          v.location?.district || '',
+          v.location?.municipality || '',
+          v.location?.tole || '',
+          v.location?.ward || '',
+          v.citizenship_no
+        ].join(','))
+      ].join('\n');
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `voters_export_${new Date().toISOString().slice(0,10)}.csv`;
+      a.click();
+    }
+    // Candidates Management
     async function loadElectionSelectAdmin(selectId) {
-      const { data } = await supabase.from('elections').select('id, name');
+      const { data, error } = await supabase.from('elections').select('id, name').order('created_at', { ascending: false });
+      if (error) return;
       const select = document.getElementById(selectId);
-      select.innerHTML = '<option value="">Select Election</option>' + data.map(e => `<option value="${e.id}">${e.name}</option>`).join('');
+      select.innerHTML = '<option value="">Select Election</option>' +
+        data.map(e => `<option value="${e.id}">${e.name}</option>`).join('');
     }
     async function loadCandidatesAdmin() {
       const eid = document.getElementById('candidateElection').value;
       if (!eid) return;
-      const { data } = await supabase.from('candidates').select('*').eq('election_id', eid);
+      const { data, error } = await supabase.from('candidates').select('*').eq('election_id', eid);
+      if (error) {
+        document.getElementById('candidateAdminList').innerHTML = `<p class="error">Error: ${error.message}</p>`;
+        return;
+      }
       document.getElementById('candidateAdminList').innerHTML = data.map(c => `
         <div class="election-card">
           <strong>${c.data.full_name}</strong> (${c.approved ? 'Approved' : 'Pending'})<br>
           <button onclick="approveCandidate('${c.id}')">Approve</button>
           <button onclick="deleteCandidate('${c.id}')">Delete</button>
-          <!-- Add edit form if needed -->
         </div>
       `).join('');
     }
     async function approveCandidate(id) {
-      await supabase.from('candidates').update({ approved: true }).eq('id', id);
-      loadCandidatesAdmin();
+      const { error } = await supabase.from('candidates').update({ approved: true }).eq('id', id);
+      if (error) alert('Error: ' + error.message);
+      else loadCandidatesAdmin();
     }
     async function deleteCandidate(id) {
-      if (confirm('Delete?')) {
-        await supabase.from('candidates').delete().eq('id', id);
-        loadCandidatesAdmin();
-      }
+      if (!confirm('Delete this candidate?')) return;
+      const { error } = await supabase.from('candidates').delete().eq('id', id);
+      if (error) alert('Error: ' + error.message);
+      else loadCandidatesAdmin();
     }
-    // Added for Voters CRUD
-    async function loadVoters() {
-      const { data } = await supabase.from('voters').select('*');
-      document.getElementById('voterList').innerHTML = data.map(v => `
-        <div class="election-card">
-          <strong>${v.full_name}</strong> (Voter ID: ${v.voter_id})<br>
-          <button onclick="deleteVoter('${v.id}')">Delete</button>
-          <!-- Add edit -->
-        </div>
-      `).join('');
-    }
-    async function deleteVoter(id) {
-      if (confirm('Delete?')) {
-        await supabase.from('voters').delete().eq('id', id);
-        loadVoters();
-      }
-    }
-    // Added for Votes
+    // Votes Management
     async function loadVotes() {
       const eid = document.getElementById('voteElection').value;
       if (!eid) return;
-      const { data } = await supabase.from('votes').select('*').eq('election_id', eid);
+      const { data, error } = await supabase.from('votes').select('*').eq('election_id', eid);
+      if (error) {
+        document.getElementById('voteList').innerHTML = `<p class="error">Error: ${error.message}</p>`;
+        return;
+      }
       document.getElementById('voteList').innerHTML = data.map(v => `
         <div class="election-card">
           Voter: ${v.voter_id} | Candidate: ${v.candidate_id}<br>
@@ -145,20 +286,72 @@
       `).join('');
     }
     async function deleteVote(id) {
-      if (confirm('Delete?')) {
-        await supabase.from('votes').delete().eq('id', id);
-        loadVotes();
+      if (!confirm('Delete this vote?')) return;
+      const { error } = await supabase.from('votes').delete().eq('id', id);
+      if (error) alert('Error: ' + error.message);
+      else loadVotes();
+    }
+    // Results
+    async function loadElectionSelect() {
+      const { data } = await supabase.from('elections').select('id, name').order('created_at', { ascending: false });
+      const select = document.getElementById('resultElection');
+      select.innerHTML = '<option value="">Select Election</option>' +
+        data.map(e => `<option value="${e.id}">${e.name}</option>`).join('');
+    }
+    async function loadResults() {
+      const eid = document.getElementById('resultElection').value;
+      const display = document.getElementById('resultDisplay');
+      if (!eid) {
+        display.innerHTML = '<p>Select an election to view results.</p>';
+        return;
       }
+      const { data: votes } = await supabase.from('votes').select('candidate_id').eq('election_id', eid);
+      const { data: candidates } = await supabase.from('candidates').select('id, data').eq('election_id', eid);
+      if (!candidates || candidates.length === 0) {
+        display.innerHTML = '<p>No candidates in this election.</p>';
+        return;
+      }
+      const tally = {};
+      votes.forEach(v => tally[v.candidate_id] = (tally[v.candidate_id] || 0) + 1);
+      const results = candidates.map(c => ({
+        name: c.data.full_name,
+        votes: tally[c.id] || 0
+      })).sort((a, b) => b.votes - a.votes);
+      display.innerHTML = `
+        <h3>Final Results</h3>
+        ${results.map((r, i) => `
+          <p style="margin: 8px 0;">
+            ${i === 0 ? '<strong style="color: green;">Winner: </strong>' : ''}
+            <strong>${r.name}</strong>: ${r.votes} votes
+          </p>
+        `).join('')}
+        <p style="margin-top: 15px; color: #64748b;">
+          Total votes cast: ${votes.length}
+        </p>
+      `;
     }
-    // INIT updates
-    if (tabName === 'candidates') {
-      loadElectionSelectAdmin('candidateElection');
+    // Settings
+    async function forceEndAll() {
+      if (!confirm('⚠️ END ALL ELECTIONS NOW? This cannot be undone.')) return;
+      const { error } = await supabase
+        .from('elections')
+        .update({ status: 'completed' })
+        .neq('status', 'completed');
+      if (error) alert('Error: ' + error.message);
+      else alert('All elections ended.');
+      loadElections();
     }
-    if (tabName === 'votes') {
-      loadElectionSelectAdmin('voteElection'); // Reuse function
+    // Clock
+    setInterval(() => {
+      document.getElementById('currentTime').textContent = new Date().toLocaleString();
+    }, 1000);
+    // Helper
+    function formatDate(date) {
+      return new Date(date).toLocaleDateString('en-GB');
     }
-    if (tabName === 'voters') loadVoters();
-    // (Rest of init)
+    // Init
+    loadElections();
+    openTab('elections');
   </script>
 </body>
 </html>
