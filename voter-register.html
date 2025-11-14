@@ -95,6 +95,8 @@
       if (error) return showMsg('msg', error.message, 'error');
       showMsg('msg', `Voter ID: <strong>${voterId}</strong><br>Save it securely!`, 'success');
     }
+  document.getElementById('province')?.addEventListener('change', populateDistricts);
+  document.getElementById('district')?.addEventListener('change', populateMunicipalities);
   </script>
 </body>
 </html>
