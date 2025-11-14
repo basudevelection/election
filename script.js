@@ -1,238 +1,72 @@
-// ========================================
-// script.js – FINAL UNIFIED & PRODUCTION-READY
-// ========================================
-const ADMIN_EMAIL = 'admin@election.com';
-let currentElection = null;
-let currentVoter = null;
-let nepalData = [];
+// Nepal data (assuming nepal-data.json is available locally or hosted)
+const nepalDataUrl = 'nepal-data.json'; // Adjust path if hosted
 
-// ========================================
-// UTILS
-// ========================================
-const getUrlParam = (name) => new URLSearchParams(location.search).get(name);
-
-const showMsg = (id, msg, type = 'success') => {
-  const el = document.getElementById(id);
-  if (el) {
-    el.innerHTML = `<div class="${type}">${msg}</div>`;
-    el.style.display = 'block';
-    setTimeout(() => { el.style.display = 'none'; }, 5000);
+async function fetchNepalData() {
+  try {
+    const response = await fetch(nepalDataUrl);
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching Nepal data:', error);
+    return null;
   }
-};
-
-function generateVoterId() {
-  return Math.floor(1000000000 + Math.random() * 9000000000).toString();
 }
 
-function calculateAge(dob) {
-  const diff = Date.now() - new Date(dob).getTime();
-  return Math.floor(diff / (1000 * 60 * 60 * 24 * 365.25));
+async function populateProvinces() {
+  const data = await fetchNepalData();
+  if (!data) return;
+  const provinceSelect = document.getElementById('province');
+  provinceSelect.innerHTML = '<option value="">Select Province</option>' +
+    data.provinceList.map(p => `<option value="${p.name}">${p.name}</option>`).join('');
 }
 
-function formatDate(date) {
-  return new Date(date).toLocaleDateString('en-GB');
-}
-
-// ========================================
-// NEPAL DATA LOADER
-// ========================================
-fetch('nepal-data.json')
-  .then(r => {
-    if (!r.ok) throw new Error('Failed to load nepal-data.json');
-    return r.json();
-  })
-  .then(d => {
-    nepalData = d.provinceList;
-    console.log('Nepal data loaded:', nepalData.length, 'provinces');
-    if (typeof populateProvinces === 'function') populateProvinces();
-  })
-  .catch(err => {
-    console.error('JSON Load Error:', err);
-    showMsg('msg', 'Location data failed to load', 'error');
-  });
-
-// ========================================
-// LOCATION SELECTS
-// ========================================
-function populateProvinces() {
-  const select = document.getElementById('province');
-  if (!select || nepalData.length === 0) return;
-  select.innerHTML = '<option value="">Select Province</option>';
-  nepalData.forEach(p => select.add(new Option(p.name, p.id)));
-}
-
-function populateDistricts() {
-  const provinceId = document.getElementById('province')?.value;
+async function populateDistricts() {
+  const provinceName = document.getElementById('province').value;
+  const data = await fetchNepalData();
+  if (!data) return;
+  const province = data.provinceList.find(p => p.name === provinceName);
   const districtSelect = document.getElementById('district');
-  const municipalitySelect = document.getElementById('municipality');
-  if (!districtSelect || !municipalitySelect) return;
   districtSelect.innerHTML = '<option value="">Select District</option>';
-  municipalitySelect.innerHTML = '<option value="">Select Municipality</option>';
-  if (!provinceId) return;
-  const province = nepalData.find(p => p.id == provinceId);
-  if (!province) return;
-  province.districtList.forEach(d => districtSelect.add(new Option(d.name, d.id)));
-}
-
-function populateMunicipalities() {
-  const districtId = document.getElementById('district')?.value;
   const municipalitySelect = document.getElementById('municipality');
-  if (!municipalitySelect || !districtId) {
-    municipalitySelect.innerHTML = '<option value="">Select Municipality</option>';
-    return;
-  }
-  let district;
-  for (let province of nepalData) {
-    district = province.districtList.find(d => d.id == districtId);
-    if (district) break;
-  }
-  if (!district) return;
   municipalitySelect.innerHTML = '<option value="">Select Municipality</option>';
-  district.municipalityList.forEach(m => municipalitySelect.add(new Option(m.name, m.id)));
+  if (province) {
+    districtSelect.innerHTML += province.districtList.map(d => `<option value="${d.name}">${d.name}</option>`).join('');
+  }
 }
 
-// ========================================
-// ELECTION DASHBOARD LOGIC
-// ========================================
+async function populateMunicipalities() {
+  const provinceName = document.getElementById('province').value;
+  const districtName = document.getElementById('district').value;
+  const data = await fetchNepalData();
+  if (!data) return;
+  const province = data.provinceList.find(p => p.name === provinceName);
+  const municipalitySelect = document.getElementById('municipality');
+  municipalitySelect.innerHTML = '<option value="">Select Municipality</option>';
+  if (province) {
+    const district = province.districtList.find(d => d.name === districtName);
+    if (district) {
+      municipalitySelect.innerHTML += district.municipalityList.map(m => `<option value="${m.name}">${m.name}</option>`).join('');
+    }
+  }
+}
+
 async function loadElection() {
   const eid = getUrlParam('eid');
-  console.log('Loading election ID:', eid);
-
-  if (!eid) {
-    showError('Missing election ID in URL');
-    setTimeout(() => location.href = 'index.html', 2000);
-    return;
+  if (!eid) return showMsg('msg', 'No election selected', 'error');
+  const { data } = await supabase.from('elections').select('*').eq('id', eid).single();
+  if (!data) return showMsg('msg', 'Election not found', 'error');
+  if (data.status !== 'active' && window.location.pathname.includes('vote.html')) {
+    showMsg('msg', 'Voting is not active for this election', 'error');
   }
-
-  try {
-    const { data, error } = await supabase
-      .from('elections')
-      .select('id, name, start_date, nomination_end, voting_end, status')
-      .eq('id', eid)
-      .single();
-
-    if (error || !data) {
-      console.error('Supabase error:', error);
-      showError('Election not found or invalid ID');
-      return;
-    }
-
-    currentElection = data;
-    document.title = data.name + ' - Election';
-    const nameEl = document.getElementById('electionName');
-    if (nameEl) nameEl.textContent = data.name;
-
-    updateElectionStatus();
-    setInterval(updateElectionStatus, 10000);
-
-  } catch (err) {
-    console.error('Load error:', err);
-    showError('Network error. Please try again.');
+  if (new Date() > new Date(data.nomination_end) && window.location.pathname.includes('candidate-register.html')) {
+    showMsg('msg', 'Candidate registration period has ended', 'error');
   }
 }
 
-function updateElectionStatus() {
-  if (!currentElection) return;
-  const now = new Date();
-  const start = new Date(currentElection.start_date);
-  const end = new Date(currentElection.voting_end);
-  const nom = new Date(currentElection.nomination_end);
-
-  let status = 'upcoming';
-  if (now >= start && now <= end) status = 'active';
-  else if (now > end) status = 'ended';
-
-  const statusEl = document.getElementById('electionStatus');
-  if (statusEl) {
-    statusEl.textContent = status.toUpperCase();
-    statusEl.style.color = status === 'active' ? '#16a34a' : status === 'ended' ? '#6b7280' : '#ea580c';
-  }
-
-  document.querySelectorAll('.nomination-only').forEach(el => {
-    el.classList.toggle('hidden', now >= nom);
-  });
-  document.querySelectorAll('.voting-only').forEach(el => {
-    el.classList.toggle('hidden', status !== 'active');
-  });
-  document.querySelectorAll('.result-only').forEach(el => {
-    el.classList.toggle('hidden', status !== 'ended');
-  });
+function getUrlParam(param) {
+  const urlParams = new URLSearchParams(window.location.search);
+  return urlParams.get(param);
 }
 
-function showError(msg) {
-  const el = document.getElementById('errorMsg');
-  if (el) {
-    el.textContent = msg;
-    el.style.display = 'block';
-  }
-  console.error('Error:', msg);
+function showMsg(elementId, message, type) {
+  document.getElementById(elementId).innerHTML = `<div class="${type}">${message}</div>`;
 }
-
-// ========================================
-// CANDIDATE & VOTING (vote.html)
-// ========================================
-async function loadCandidates() {
-  if (!currentElection) return;
-  const { data } = await supabase
-    .from('candidates')
-    .select('id, name, party')
-    .eq('election_id', currentElection.id)
-    .order('name');
-  const list = document.getElementById('candidateList');
-  if (!list) return;
-  if (!data || data.length === 0) {
-    list.innerHTML = '<p>No candidates yet.</p>';
-    return;
-  }
-  list.innerHTML = data.map(c => `
-    <div class="candidate-card" onclick="selectCandidate('${c.id}', this)">
-      <strong>${c.name}</strong><br>
-      <small>${c.party || 'Independent'}</small>
-    </div>
-  `).join('');
-}
-
-let selectedCandidateId = null;
-function selectCandidate(id, el) {
-  document.querySelectorAll('.candidate-card').forEach(c => {
-    c.style.border = '2px solid #ddd';
-    c.style.background = '#fff';
-  });
-  el.style.border = '3px solid #1d4ed8';
-  el.style.background = '#eff6ff';
-  selectedCandidateId = id;
-}
-
-async function submitVote() {
-  if (!selectedCandidateId) return alert('Select a candidate');
-  const voterId = localStorage.getItem('voterId');
-  if (!voterId) return alert('Voter ID missing. Register first.');
-
-  const { error } = await supabase
-    .from('votes')
-    .insert({ election_id: currentElection.id, voter_id: voterId, candidate_id: selectedCandidateId });
-
-  if (error) {
-    alert(error.message.includes('duplicate') ? 'Already voted!' : 'Vote failed');
-  } else {
-    alert('Vote cast!');
-    localStorage.removeItem('voterId');
-    setTimeout(() => location.href = 'thank-you.html', 1000);
-  }
-}
-
-// ========================================
-// AUTO-INIT
-// ========================================
-document.addEventListener('DOMContentLoaded', () => {
-  const province = document.getElementById('province');
-  const district = document.getElementById('district');
-  if (province) province.addEventListener('change', populateDistricts);
-  if (district) district.addEventListener('change', populateMunicipalities);
-
-  if (document.getElementById('electionName')) loadElection();
-  if (document.getElementById('candidateList')) {
-    loadElection();
-    setTimeout(loadCandidates, 600);
-  }
-});
