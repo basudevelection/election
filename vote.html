@@ -1,60 +1,95 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Cast Your Vote</title>
-  <link rel="stylesheet" href="styles.css" />
-</head>
-<body onload="loadElection(); loadCandidates()">
-  <div class="container">
-    <h1>Cast Your Vote</h1>
-    <div id="msg"></div>
-    <form onsubmit="event.preventDefault(); castVote()">
-      <div class="form-section">
-        <input type="text" id="voterId" placeholder="Your Voter ID (e.g., V123456789)" required />
-        <select id="candidate" required>
-          <option value="">Select Candidate</option>
-        </select>
-      </div>
-      <button type="submit" class="btn">Submit Vote</button>
-    </form>
-  </div>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Proceed to Vote</title>
+  <link rel="stylesheet" href="styles.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase.js"></script>
   <script src="script.js"></script>
+</head>
+<body onload="loadElection()">
+  <div class="container">
+    <h1>Proceed to Vote</h1>
+    <div id="msg"></div>
+    <div class="form-section">
+      <input type="text" id="voterId" placeholder="Enter 10-digit Voter ID" required />
+      <button class="btn" onclick="verifyVoter()">Verify & Load Candidates</button>
+    </div>
+    <div id="voteSection" class="form-section hidden">
+      <h3>Select Candidate</h3>
+      <div id="candidateList" class="grid"></div>
+      <button class="btn" onclick="submitVote()">Submit Vote</button>
+    </div>
+  </div>
   <script>
-    async function loadCandidates() {
-      const { data } = await supabase
-        .from('candidates')
-        .select('id, data')
-        .eq('election_id', getUrlParam('eid'))
-        .eq('approved', true);
-      const select = document.getElementById('candidate');
-      select.innerHTML = '<option value="">Select Candidate</option>' +
-        data.map(c => `<option value="${c.id}">${c.data.full_name} (${c.data.party})</option>`).join('');
-    }
-    async function castVote() {
-      const voterId = document.getElementById('voterId').value.trim();
-      const candidateId = document.getElementById('candidate').value;
-      if (!voterId || !candidateId) return showMsg('msg', 'Please fill all fields', 'error');
-      const { data: voter } = await supabase.from('voters').select('id').eq('voter_id', voterId).single();
-      if (!voter) return showMsg('msg', 'Invalid Voter ID', 'error');
-      const { data: hasVoted } = await supabase
-        .from('votes')
-        .select('id')
-        .eq('voter_id', voterId)
+    async function verifyVoter() {
+      const vid = document.getElementById('voterId').value.trim();
+      if (vid.length !== 10 || !/^\d+$/.test(vid)) {
+        return showMsg('msg', 'Please enter a valid 10-digit Voter ID', 'error');
+      }
+      const { data: voter } = await supabase
+        .from('voters')
+        .select('approved')
+        .eq('voter_id', vid)
         .eq('election_id', getUrlParam('eid'))
         .single();
-      if (hasVoted) return showMsg('msg', 'You have already voted in this election', 'error');
+      if (!voter || !voter.approved) {
+        return showMsg('msg', 'Voter ID not found or not approved', 'error');
+      }
+      const { data: vote } = await supabase
+        .from('votes')
+        .select('*')
+        .eq('voter_id', vid)
+        .eq('election_id', getUrlParam('eid'))
+        .single();
+      if (vote) {
+        return showMsg('msg', 'You have already voted in this election', 'error');
+      }
+      document.getElementById('voteSection').classList.remove('hidden');
+      loadCandidates();
+    }
+
+    async function loadCandidates() {
+      const { data, error } = await supabase
+        .from('candidates')
+        .select('id, full_name, party')
+        .eq('election_id', getUrlParam('eid'))
+        .eq('approved', true);
+      if (error) return showMsg('msg', error.message, 'error');
+      const list = document.getElementById('candidateList');
+      list.innerHTML = data.map((c, i) => `
+        <div class="card" onclick="selectCandidate('${c.id}', this)">
+          <h3>${c.full_name}</h3>
+          <p>${c.party}</p>
+        </div>
+      `).join('');
+    }
+
+    let selectedCandidateId = null;
+    function selectCandidate(id, el) {
+      selectedCandidateId = id;
+      document.querySelectorAll('.card').forEach(c => {
+        c.style.border = '2px solid #e5e7eb';
+        c.style.background = '#fff';
+      });
+      el.style.border = '3px solid #16a34a';
+      el.style.background = '#f0fdf4';
+    }
+
+    async function submitVote() {
+      if (!selectedCandidateId) return showMsg('msg', 'Please select a candidate', 'error');
+      if (!confirm('Are you sure you want to cast this vote?')) return;
+      const vid = document.getElementById('voterId').value.trim();
       const { error } = await supabase.from('votes').insert({
-        voter_id: voterId,
-        candidate_id: candidateId,
-        election_id: getUrlParam('eid')
+        election_id: getUrlParam('eid'),
+        voter_id: vid,
+        candidate_id: selectedCandidateId
       });
       if (error) return showMsg('msg', error.message, 'error');
-      showMsg('msg', 'Vote cast successfully!', 'success');
-      document.querySelector('form').reset();
+      showMsg('msg', 'Vote successfully cast! Thank you for voting.', 'success');
+      document.getElementById('voteSection').classList.add('hidden');
     }
   </script>
 </body>
