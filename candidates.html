@@ -5,15 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Know Your Candidates</title>
   <link rel="stylesheet" href="styles.css" />
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="supabase.js"></script>
-  <script src="script.js"></script>
 </head>
 <body onload="loadElection(); loadCandidates()">
   <div class="container">
     <h1>Know Your Candidates</h1>
     <div id="candidateList" class="grid"></div>
   </div>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase.js"></script>
+  <script src="script.js"></script>
   <script>
     async function loadCandidates() {
       const { data } = await supabase
@@ -24,14 +24,15 @@
       const list = document.getElementById('candidateList');
       list.innerHTML = data.map(c => `
         <div class="card">
-          <img src="${c.photo_url || 'default.jpg'}" style="width:80px;height:80px;border-radius:50%;object-fit:cover;">
+          <img src="${c.photo_url || 'default.jpg'}" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover;">
           <h3>${c.data.full_name} (${c.data.gender})</h3>
           <p><strong>Email:</strong> ${c.data.email}</p>
+          <p><strong>Address:</strong> ${c.data.location.municipality}, ${c.data.location.district}, ${c.data.location.province}</p>
           <p><strong>Highest Qualification:</strong> ${c.data.highest_qual} (${c.data.institution}, ${c.data.year_completion})</p>
           <p><strong>Occupation:</strong> ${c.data.occupation}</p>
           <p><strong>Skills:</strong> ${c.data.skills}</p>
           <p><strong>Party:</strong> ${c.data.party}</p>
-          <img src="${c.symbol_url || 'default-symbol.jpg'}" style="width:60px;height:60px;">
+          <img src="${c.symbol_url || 'default-symbol.jpg'}" style="width: 60px; height: 60px;">
           <p><strong>Position:</strong> ${c.data.position_contested} (Ward: ${c.data.ward_const})</p>
           <p><strong>Previous Roles:</strong> ${c.data.prev_roles || 'None'}</p>
           <p><strong>Manifesto:</strong> ${c.data.manifesto.substring(0, 100)}...</p>
