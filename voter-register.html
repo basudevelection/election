@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Register Voter</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase.js"></script>
+  <script src="script.js"></script>
+</head>
+<body onload="loadElection(); populateProvinces()">
+  <div class="container">
+    <h1>Register Voter ID</h1>
+    <div id="msg"></div>
+
+    <form onsubmit="event.preventDefault(); registerVoter()">
+      <div class="form-section">
+        <h3>Family Details</h3>
+        <input type="text" id="fullName" placeholder="Full Name" required />
+        <input type="text" id="fatherName" placeholder="Father's Name" />
+        <input type="text" id="motherName" placeholder="Mother's Name" />
+        <input type="date" id="dob" required />
+      </div>
+
+      <div class="form-section">
+        <h3>Location</h3>
+        <select id="province" onchange="populateDistricts()" required><option>Select Province</option></select>
+        <select id="district" onchange="populateMunicipalities()" required><option>Select District</option></select>
+        <select id="municipality" required><option>Select Municipality</option></select>
+        <input type="text" id="tole" placeholder="Tole / Ward No" required />
+      </div>
+
+      <div class="form-section">
+        <h3>Documents</h3>
+        <input type="text" id="citizenshipNo" placeholder="Citizenship No" required />
+        <input type="date" id="issueDate" required />
+      </div>
+
+      <button type="submit" class="btn">Generate Voter ID</button>
+    </form>
+  </div>
+
+  <script>
+    function populateProvinces() {
+      const select = document.getElementById('province');
+      nepalData.forEach(p => {
+        const opt = new Option(p.name, p.id);
+        select.add(opt);
+      });
+    }
+    function populateDistricts() {
+      const pId = document.getElementById('province').value;
+      const dSelect = document.getElementById('district');
+      dSelect.innerHTML = '<option>Select District</option>';
+      document.getElementById('municipality').innerHTML = '<option>Select Municipality</option>';
+      if (!pId) return;
+      const province = nepalData.find(p => p.id == pId);
+      province.districtList.forEach(d => {
+        dSelect.add(new Option(d.name, d.id));
+      });
+    }
+    function populateMunicipalities() {
+      const dId = document.getElementById('district').value;
+      const mSelect = document.getElementById('municipality');
+      mSelect.innerHTML = '<option>Select Municipality</option>';
+      if (!dId) return;
+      const province = nepalData.find(p => p.districtList.some(d => d.id == dId));
+      const district = province.districtList.find(d => d.id == dId);
+      district.municipalityList.forEach(m => {
+        mSelect.add(new Option(m.name, m.id));
+      });
+    }
+
+    async function registerVoter() {
+      const voterId = generateVoterId();
+      const location = {
+        province: document.getElementById('province').options[document.getElementById('province').selectedIndex].text,
+        district: document.getElementById('district').options[document.getElementById('district').selectedIndex].text,
+        municipality: document.getElementById('municipality').options[document.getElementById('municipality').selectedIndex].text,
+        tole: document.getElementById('tole').value
+      };
+
+      const { error } = await supabase.from('voters').insert({
+        election_id: getUrlParam('eid'),
+        voter_id: voterId,
+        full_name: document.getElementById('fullName').value,
+        birth_date: document.getElementById('dob').value,
+        family: { father: document.getElementById('fatherName').value, mother: document.getElementById('motherName').value },
+        location,
+        citizenship_no: document.getElementById('citizenshipNo').value,
+        citizenship_issue_date: document.getElementById('issueDate').value
+      });
+
+      if (error) return showMsg('msg', error.message, 'error');
+      showMsg('msg', `Voter ID: <strong>${voterId}</strong><br>Save it securely!`, 'success');
+    }
+  </script>
+</body>
+</html>
