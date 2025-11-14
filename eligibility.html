@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Eligibility Check</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase.js"></script>
+  <script src="script.js"></script>
+</head>
+<body onload="loadElection()">
+  <div class="container">
+    <h1>Eligibility Check</h1>
+    <div id="msg"></div>
+    <div class="form-section">
+      <input type="text" id="voterId" placeholder="Enter 10-digit Voter ID" maxlength="10" required />
+      <button class="btn" onclick="checkEligibility()">Check</button>
+    </div>
+  </div>
+
+  <script>
+    async function checkEligibility() {
+      const vid = document.getElementById('voterId').value.trim();
+      if (vid.length !== 10 || !/^\d+$/.test(vid)) {
+        return showMsg('msg', 'Please enter a valid 10-digit Voter ID', 'error');
+      }
+      const { data, error } = await supabase
+        .from('voters')
+        .select('birth_date')
+        .eq('voter_id', vid)
+        .eq('election_id', getUrlParam('eid'))
+        .single();
+
+      if (error || !data) {
+        return showMsg('msg', 'Voter ID not found or invalid election', 'error');
+      }
+
+      const age = calculateAge(data.birth_date);
+      if (age >= 18) {
+        showMsg('msg', `Eligible! You are ${age} years old.`, 'success');
+      } else {
+        showMsg('msg', `Not eligible. You are ${age} (must be 18+)`, 'error');
+      }
+    }
+  </script>
+</body>
+</html>
