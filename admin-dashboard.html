@@ -6,22 +6,49 @@
   <title>Admin Dashboard</title>
   <link rel="stylesheet" href="styles.css" />
   <style>
-    .tab { display: none; }
+    body { font-family: 'Segoe UI', sans-serif; background: #f1f5f9; color: #1e293b; }
+    .container { max-width: 1000px; margin: 0 auto; padding: 20px; }
+    h1 { color: #0f2027; text-align: center; margin-bottom: 8px; }
+    .nav-tabs { display: flex; gap: 8px; margin-bottom: 25px; flex-wrap: wrap; justify-content: center; }
+    .nav-tabs button {
+      padding: 12px 18px; background: #1e293b; color: white; border: none; border-radius: 6px;
+      cursor: pointer; font-weight: 500; transition: 0.2s;
+    }
+    .nav-tabs button:hover { background: #334155; }
+    .nav-tabs button.active { background: #1d4ed8; }
+    .tab { display: none; background: white; padding: 25px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
     .tab.active { display: block; }
-    .nav-tabs { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
-    .nav-tabs button { padding: 10px 15px; background: #0f2027; color: white; border: none; cursor: pointer; border-radius: 5px; }
-    .nav-tabs button.active { background: #1e3a8a; }
+    .form-section { margin-bottom: 25px; }
+    input, select, button {
+      width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #cbd5e1; border-radius: 6px;
+      font-size: 1rem;
+    }
+    button.btn {
+      background: #1d4ed8; color: white; font-weight: bold; cursor: pointer; transition: 0.2s;
+    }
+    button.btn:hover { background: #1e40af; }
     .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
     @media (max-width: 768px) { .form-grid { grid-template-columns: 1fr; } }
-    .election-card { background: #f8fafc; padding: 15px; border-radius: 8px; margin-bottom: 10px; }
+    .election-card {
+      background: #f8fafc; padding: 16px; border-radius: 8px; margin-bottom: 12px;
+      border-left: 4px solid #1d4ed8; font-size: 0.95rem;
+    }
+    .election-card strong { color: #1e293b; }
+    .error { color: #dc2626; font-weight: 500; }
+    .success { color: #16a34a; font-weight: 500; }
+    .logout-btn {
+      position: absolute; top: 20px; right: 20px; background: #dc2626; padding: 10px 16px;
+      font-size: 0.9rem; border-radius: 6px;
+    }
+    .logout-btn:hover { background: #b91c1c; }
   </style>
 </head>
 <body>
   <div class="container">
-    <header style="text-align:center; margin-bottom: 30px;">
-      <h1>Admin Dashboard</h1>
-      <p>Full control over elections, voters, and results</p>
-      <button class="btn" onclick="logout()" style="position:absolute; right:20px; top:20px;">Logout</button>
+    <header style="position:relative; text-align:center; margin-bottom: 30px;">
+      <h1>Election Admin Panel</h1>
+      <p style="color:#64748b;">Full control: Create elections, manage voters, view results</p>
+      <button class="btn logout-btn" onclick="logout()">Logout</button>
     </header>
 
     <div class="nav-tabs">
@@ -35,167 +62,271 @@
     <div id="elections" class="tab active">
       <h2>Create New Election</h2>
       <div class="form-section">
-        <input type="text" id="electionName" placeholder="Election Name" />
-        <input type="date" id="startDate" />
-        <input type="date" id="nominationEnd" />
-        <input type="date" id="votingEnd" />
+        <input type="text" id="electionName" placeholder="Election Name (e.g. Province 1 Assembly 2025)" />
+        <div class="form-grid">
+          <input type="date" id="startDate" />
+          <input type="date" id="nominationEnd" />
+          <input type="date" id="votingEnd" />
+        </div>
         <button class="btn" onclick="createElection()">Create Election</button>
       </div>
 
-      <h2 style="margin-top: 30px;">Active Elections</h2>
-      <div id="electionList"></div>
+      <h2 style="margin-top: 30px;">Active & Upcoming Elections</h2>
+      <div id="electionList">Loading elections...</div>
     </div>
 
     <!-- VOTERS TAB -->
     <div id="voters" class="tab">
-      <h2>Export Voters</h2>
-      <button class="btn" onclick="exportVoters()">Download CSV</button>
-      <div id="voterStats" style="margin-top: 20px;"></div>
+      <h2>Registered Voters</h2>
+      <button class="btn" onclick="exportVoters()" style="width:auto; padding:12px 20px;">
+        Export All Voters (CSV)
+      </button>
+      <div id="voterStats" style="margin-top: 20px; padding:15px; background:#f8fafc; border-radius:8px;"></div>
     </div>
 
     <!-- RESULTS TAB -->
     <div id="results" class="tab">
-      <h2>Election Results</h2>
-      <select id="resultElection" onchange="loadResults()"></select>
-      <div id="resultDisplay" style="margin-top: 20px;"></div>
+      <h2>View Election Results</h2>
+      <select id="resultElection" onchange="loadResults()" style="margin-bottom:15px;">
+        <option value="">Select Election</option>
+      </select>
+      <div id="resultDisplay" style="padding:15px; background:#f8fafc; border-radius:8px; min-height:100px;"></div>
     </div>
 
     <!-- SETTINGS TAB -->
     <div id="settings" class="tab">
-      <h2>System Settings</h2>
-      <p><strong>Current Time:</strong> <span id="currentTime"></span></p>
-      <button class="btn" onclick="forceEndAll()">End All Elections Now</button>
+      <h2>System Control</h2>
+      <p><strong>Server Time:</strong> <span id="currentTime" style="font-family:monospace;"></span></p>
+      <button class="btn" onclick="forceEndAll()" style="background:#dc2626; margin-top:15px;">
+        End ALL Elections Now
+      </button>
+      <p style="margin-top:20px; font-size:0.9rem; color:#64748b;">
+        Use only in emergency. All voting will stop immediately.
+      </p>
     </div>
   </div>
 
+  <!-- SUPABASE + SCRIPTS -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase.js"></script>
   <script>
-    // === SECURITY: Block direct access ===
-    const token = localStorage.getItem('adminToken');
-    if (!token) {
+    // ========================================
+    // SECURITY: BLOCK DIRECT ACCESS
+    // ========================================
+    const adminToken = localStorage.getItem('adminToken');
+    if (!adminToken) {
+      alert('Access denied. Redirecting to login...');
       location.href = 'admin-login.html';
     }
 
     // Auto logout after 1 hour
     setTimeout(() => {
       localStorage.removeItem('adminToken');
+      alert('Session expired. Please log in again.');
       location.href = 'admin-login.html';
     }, 3600000);
 
     function logout() {
-      localStorage.removeItem('adminToken');
-      location.href = 'admin-login.html';
+      if (confirm('Logout now?')) {
+        localStorage.removeItem('adminToken');
+        location.href = 'admin-login.html';
+      }
     }
 
+    // Prevent back button
+    window.addEventListener('pageshow', (e) => {
+      if (e.persisted || !localStorage.getItem('adminToken')) {
+        location.href = 'admin-login.html';
+      }
+    });
+
+    // ========================================
+    // TAB SYSTEM
+    // ========================================
     function openTab(tabName) {
       document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
       document.querySelectorAll('.nav-tabs button').forEach(b => b.classList.remove('active'));
       document.getElementById(tabName).classList.add('active');
       document.querySelector(`button[onclick="openTab('${tabName}')"]`).classList.add('active');
 
+      // Load data
       if (tabName === 'elections') loadElections();
       if (tabName === 'voters') loadVoterStats();
       if (tabName === 'results') loadElectionSelect();
     }
 
-    // === LOAD ELECTIONS ===
+    // ========================================
+    // ELECTIONS MANAGEMENT
+    // ========================================
     async function loadElections() {
-      const { data } = await supabase.from('elections').select('*').order('start_date', { ascending: false });
-      const list = document.getElementById('electionList');
-      list.innerHTML = data.map(e => `
+      const { data, error } = await supabase
+        .from('elections')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        document.getElementById('electionList').innerHTML = `<p class="error">Error: ${error.message}</p>`;
+        return;
+      }
+
+      if (data.length === 0) {
+        document.getElementById('electionList').innerHTML = `<p>No elections created yet.</p>`;
+        return;
+      }
+
+      document.getElementById('electionList').innerHTML = data.map(e => `
         <div class="election-card">
           <strong>${e.name}</strong><br>
-          Start: ${new Date(e.start_date).toLocaleDateString()} |
-          Nomination End: ${new Date(e.nomination_end).toLocaleDateString()} |
-          Voting End: ${new Date(e.voting_end).toLocaleDateString()}<br>
-          Status: <strong>${e.status.toUpperCase()}</strong>
-          <button style="float:right; font-size:0.8rem;" onclick="deleteElection('${e.id}')">Delete</button>
+          <small>
+            Start: ${formatDate(e.start_date)} | 
+            Nomination End: ${formatDate(e.nomination_end)} | 
+            Voting End: ${formatDate(e.voting_end)}
+          </small><br>
+          <strong style="color:${e.status === 'active' ? 'green' : e.status === 'completed' ? 'gray' : 'orange'}">
+            ${e.status.toUpperCase()}
+          </strong>
+          <button style="float:right; font-size:0.8rem; padding:4px 8px;" 
+                  onclick="deleteElection('${e.id}')">Delete</button>
         </div>
       `).join('');
     }
 
     async function createElection() {
-      const name = document.getElementById('electionName').value;
+      const name = document.getElementById('electionName').value.trim();
       const start = document.getElementById('startDate').value;
       const nomEnd = document.getElementById('nominationEnd').value;
       const voteEnd = document.getElementById('votingEnd').value;
 
-      if (!name || !start || !nomEnd || !voteEnd) return alert('Fill all fields');
+      if (!name || !start || !nomEnd || !voteEnd) {
+        alert('Please fill all fields');
+        return;
+      }
 
       const { error } = await supabase.from('elections').insert({
-        name, start_date: start, nomination_end: nomEnd, voting_end: voteEnd, status: 'upcoming'
+        name,
+        start_date: start,
+        nomination_end: nomEnd,
+        voting_end: voteEnd,
+        status: 'upcoming'
       });
 
-      if (error) alert(error.message);
-      else {
-        alert('Election created!');
+      if (error) {
+        alert('Error: ' + error.message);
+      } else {
+        alert('Election created successfully!');
+        document.getElementById('electionName').value = '';
         loadElections();
       }
     }
 
     async function deleteElection(id) {
-      if (!confirm('Delete this election?')) return;
+      if (!confirm('Delete this election permanently? All data will be lost.')) return;
+      await supabase.from('votes').delete().eq('election_id', id);
+      await supabase.from('candidates').delete().eq('election_id', id);
       await supabase.from('elections').delete().eq('id', id);
       loadElections();
     }
 
-    // === VOTERS ===
+    // ========================================
+    // VOTERS
+    // ========================================
     async function loadVoterStats() {
       const { count } = await supabase.from('voters').select('*', { count: 'exact', head: true });
-      document.getElementById('voterStats').innerHTML = `<p><strong>Total Registered Voters:</strong> ${count}</p>`;
+      document.getElementById('voterStats').innerHTML = `
+        <p><strong>Total Registered Voters:</strong> ${count || 0}</p>
+      `;
     }
 
     async function exportVoters() {
       const { data } = await supabase.from('voters').select('*');
+      if (!data || data.length === 0) {
+        alert('No voters to export');
+        return;
+      }
+
       const csv = [
-        ['Voter ID', 'Name', 'DOB', 'Province', 'District', 'Municipality', 'Tole', 'Citizenship'],
+        'Voter ID,Full Name,DOB,Province,District,Municipality,Tole,Ward,Citizenship No',
         ...data.map(v => [
-          v.voter_id, v.full_name, v.birth_date,
-          v.location.province, v.location.district, v.location.municipality, v.location.tole,
+          v.voter_id,
+          v.full_name,
+          v.birth_date,
+          v.location?.province || '',
+          v.location?.district || '',
+          v.location?.municipality || '',
+          v.location?.tole || '',
+          v.location?.ward || '',
           v.citizenship_no
-        ])
-      ].map(row => row.join(',')).join('\n');
+        ].join(','))
+      ].join('\n');
 
       const blob = new Blob([csv], { type: 'text/csv' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = url; a.download = 'voters.csv'; a.click();
+      a.href = url;
+      a.download = `voters_export_${new Date().toISOString().slice(0,10)}.csv`;
+      a.click();
     }
 
-    // === RESULTS ===
+    // ========================================
+    // RESULTS
+    // ========================================
     async function loadElectionSelect() {
-      const { data } = await supabase.from('elections').select('id, name');
+      const { data } = await supabase.from('elections').select('id, name').order('created_at', { ascending: false });
       const select = document.getElementById('resultElection');
-      select.innerHTML = '<option value="">Select Election</option>' + data.map(e => `<option value="${e.id}">${e.name}</option>`).join('');
+      select.innerHTML = '<option value="">Select Election</option>' +
+        data.map(e => `<option value="${e.id}">${e.name}</option>`).join('');
     }
 
     async function loadResults() {
       const eid = document.getElementById('resultElection').value;
-      if (!eid) return;
+      const display = document.getElementById('resultDisplay');
+      if (!eid) {
+        display.innerHTML = '<p>Select an election to view results.</p>';
+        return;
+      }
 
       const { data: votes } = await supabase.from('votes').select('candidate_id').eq('election_id', eid);
       const { data: candidates } = await supabase.from('candidates').select('id, name').eq('election_id', eid);
 
+      if (!candidates || candidates.length === 0) {
+        display.innerHTML = '<p>No candidates in this election.</p>';
+        return;
+      }
+
       const tally = {};
       votes.forEach(v => tally[v.candidate_id] = (tally[v.candidate_id] || 0) + 1);
 
-      const result = candidates.map(c => ({
+      const results = candidates.map(c => ({
         name: c.name,
         votes: tally[c.id] || 0
-      })).sort((a,b) => b.votes - a.votes);
+      })).sort((a, b) => b.votes - a.votes);
 
-      document.getElementById('resultDisplay').innerHTML = `
-        <h3>Results</h3>
-        ${result.map(r => `<p><strong>${r.name}:</strong> ${r.votes} votes</p>`).join('')}
-        ${result[0] ? `<p style="color:green; font-weight:bold;">Winner: ${result[0].name}</p>` : ''}
+      display.innerHTML = `
+        <h3>Final Results</h3>
+        ${results.map((r, i) => `
+          <p style="margin:8px 0;">
+            ${i === 0 ? '<strong style="color:green;">Winner: </strong>' : ''}
+            <strong>${r.name}</strong>: ${r.votes} votes
+          </p>
+        `).join('')}
+        <p style="margin-top:15px; color:#64748b;">
+          Total votes cast: ${votes.length}
+        </p>
       `;
     }
 
+    // ========================================
+    // SETTINGS
+    // ========================================
     async function forceEndAll() {
-      if (!confirm('End ALL elections now?')) return;
-      await supabase.from('elections').update({ status: 'completed' }).neq('status', 'completed');
-      alert('All elections ended.');
+      if (!confirm('⚠️ END ALL ELECTIONS NOW? This cannot be undone.')) return;
+      const { error } = await supabase
+        .from('elections')
+        .update({ status: 'completed' })
+        .neq('status', 'completed');
+      if (error) alert('Error: ' + error.message);
+      else alert('All elections ended.');
+      loadElections();
     }
 
     // Clock
@@ -203,7 +334,12 @@
       document.getElementById('currentTime').textContent = new Date().toLocaleString();
     }, 1000);
 
-    // Init
+    // Helper
+    function formatDate(date) {
+      return new Date(date).toLocaleDateString('en-GB');
+    }
+
+    // INIT
     loadElections();
     openTab('elections');
   </script>
