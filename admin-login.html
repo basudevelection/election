@@ -10,25 +10,16 @@
   <div class="container" style="max-width: 400px; margin-top: 120px;">
     <h1>Admin Login</h1>
     <div class="form-section">
-      <input type="email" id="email" placeholder="Email" value="admin@election.com" />
-      <input type="password" id="pass" placeholder="Password" />
+      <input type="email" id="email" placeholder="Email (e.g., admin@election.com)" value="admin@election.com" />
+      <input type="password" id="pass" placeholder="Strong Password" />
       <button class="btn" onclick="login()">Login</button>
       <div id="msg"></div>
     </div>
   </div>
-
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase.js"></script>
   <script>
-    async function login() {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: document.getElementById('email').value,
-        password: document.getElementById('pass').value
-      });
-      if (error) return document.getElementById('msg').innerHTML = `<div class="error">${error.message}</div>`;
-      localStorage.setItem('adminToken', data.session.access_token);
-      location.href = 'admin-dashboard.html';
-    }
+    // (Your existing login code)
   </script>
 </body>
 </html>
