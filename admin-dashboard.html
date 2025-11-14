@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Panel</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase.js"></script>
+</head>
+<body onload="checkAdmin()">
+  <div class="container">
+    <h1>Admin Dashboard</h1>
+    <button class="btn" onclick="logout()">Logout</button>
+    <h2>Pending Candidates</h2>
+    <div id="pending"></div>
+  </div>
+
+  <script>
+    async function checkAdmin() {
+      const token = localStorage.getItem('adminToken');
+      if (!token) return location.href = 'admin-login.html';
+      supabase.auth.setAuth(token);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user.email !== 'admin@election.com') return location.href = 'admin-login.html';
+      loadPending();
+    }
+
+    async function loadPending() {
+      const { data } = await supabase.from('candidates').select('*').eq('approved', false);
+      const el = document.getElementById('pending');
+      el.innerHTML = data.map(c => `
+        <div class="form-section">
+          <strong>${c.data.full_name}</strong> - ${c.data.position_contested}
+          <button class="btn" onclick="approve('${c.id}')">Approve</button>
+          <button class="btn" style="background:red" onclick="reject('${c.id}')">Reject</button>
+        </div>
+      `).join('');
+    }
+
+    window.approve = async (id) => {
+      await supabase.from('candidates').update({ approved: true }).eq('id', id);
+      loadPending();
+    };
+    window.reject = async (id) => {
+      await supabase.from('candidates').delete().eq('id', id);
+      loadPending();
+    };
+    function logout() {
+      localStorage.removeItem('adminToken');
+      location.href = 'admin-login.html';
+    }
+  </script>
+</body>
+</html>
