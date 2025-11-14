@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Register as Candidate</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase.js"></script>
+  <script src="script.js"></script>
+</head>
+<body onload="loadElection()">
+  <div class="container">
+    <h1>Register as Candidate</h1>
+    <p class="nomination-only" style="color: #a8e6cf;">Nomination open until Nov 30</p>
+    <div id="msg"></div>
+
+    <form id="candidateForm">
+      <!-- 1. Personal -->
+      <div class="form-section">
+        <h3>1. Personal Details</h3>
+        <input type="text" id="c_fullName" placeholder="Full Name" required />
+        <input type="date" id="c_dob" required />
+        <input type="text" id="c_citizenship" placeholder="Citizenship No" required />
+      </div>
+
+      <!-- 2. Contact -->
+      <div class="form-section">
+        <h3>2. Contact</h3>
+        <input type="tel" id="c_phone" placeholder="Phone" required />
+        <input type="email" id="c_email" placeholder="Email" required />
+      </div>
+
+      <!-- 3. Address -->
+      <div class="form-section">
+        <h3>3. Address</h3>
+        <select id="c_province" onchange="populateCDistricts()" required><option>Select Province</option></select>
+        <select id="c_district" onchange="populateCMunicipalities()" required><option>Select District</option></select>
+        <select id="c_municipality" required><option>Select Municipality</option></select>
+        <input type="text" id="c_tole" placeholder="Tole" required />
+      </div>
+
+      <!-- 4. Position -->
+      <div class="form-section">
+        <h3>4. Position Contested</h3>
+        <input type="text" id="c_position" placeholder="e.g., Prime Minister" required />
+      </div>
+
+      <!-- 5. Vision -->
+      <div class="form-section">
+        <h3>5. Vision (Max 300 words)</h3>
+        <textarea id="c_vision" rows="5" maxlength="1500" required></textarea>
+      </div>
+
+      <!-- 6. Photo -->
+      <div class="form-section">
+        <h3>6. Photo (JPG/PNG, <2MB)</h3>
+        <input type="file" id="c_photo" accept="image/*" required />
+      </div>
+
+      <!-- 7. Symbol -->
+      <div class="form-section">
+        <h3>7. Symbol (JPG/PNG, <1MB)</h3>
+        <input type="file" id="c_symbol" accept="image/*" required />
+      </div>
+
+      <button type="button" class="btn" onclick="submitCandidate()">Submit for Approval</button>
+    </form>
+  </div>
+
+  <script>
+    function populateCDistricts() {
+      const pId = document.getElementById('c_province').value;
+      const dSelect = document.getElementById('c_district');
+      dSelect.innerHTML = '<option>Select District</option>';
+      document.getElementById('c_municipality').innerHTML = '<option>Select Municipality</option>';
+      if (!pId) return;
+      const province = nepalData.find(p => p.id == pId);
+      province.districtList.forEach(d => dSelect.add(new Option(d.name, d.id)));
+    }
+    function populateCMunicipalities() {
+      const dId = document.getElementById('c_district').value;
+      const mSelect = document.getElementById('c_municipality');
+      mSelect.innerHTML = '<option>Select Municipality</option>';
+      if (!dId) return;
+      const province = nepalData.find(p => p.districtList.some(d => d.id == dId));
+      const district = province.districtList.find(d => d.id == dId);
+      district.municipalityList.forEach(m => mSelect.add(new Option(m.name, m.id)));
+    }
+
+    async function submitCandidate() {
+      const photo = document.getElementById('c_photo').files[0];
+      const symbol = document.getElementById('c_symbol').files[0];
+      if (!photo || !symbol) return showMsg('msg', 'Upload both photo and symbol', 'error');
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return showMsg('msg', 'Please login first', 'error');
+
+      const photoPath = `candidate-photos/${user.id}_${Date.now()}.jpg`;
+      const symbolPath = `candidate-symbols/${user.id}_${Date.now()}.jpg`;
+
+      const { error: pErr } = await supabase.storage.from('candidate-photos').upload(photoPath, photo);
+      const { error: sErr } = await supabase.storage.from('candidate-symbols').upload(symbolPath, symbol);
+      if (pErr || sErr) return showMsg('msg', 'Upload failed', 'error');
+
+      const { data: pUrl } = supabase.storage.from('candidate-photos').getPublicUrl(photoPath);
+      const { data: sUrl } = supabase.storage.from('candidate-symbols').getPublicUrl(symbolPath);
+
+      const candidateData = {
+        election_id: getUrlParam('eid'),
+        user_id: user.id,
+        data: {
+          full_name: document.getElementById('c_fullName').value,
+          dob: document.getElementById('c_dob').value,
+          citizenship: document.getElementById('c_citizenship').value,
+          phone: document.getElementById('c_phone').value,
+          email: document.getElementById('c_email').value,
+          location: {
+            province: document.getElementById('c_province').options[document.getElementById('c_province').selectedIndex].text,
+            district: document.getElementById('c_district').options[document.getElementById('c_district').selectedIndex].text,
+            municipality: document.getElementById('c_municipality').options[document.getElementById('c_municipality').selectedIndex].text,
+            tole: document.getElementById('c_tole').value
+          },
+          position_contested: document.getElementById('c_position').value,
+          vision: document.getElementById('c_vision').value
+        },
+        photo_url: pUrl.publicUrl,
+        symbol_url: sUrl.publicUrl
+      };
+
+      const { error } = await supabase.from('candidates').insert(candidateData);
+      if (error) return showMsg('msg', error.message, 'error');
+      showMsg('msg', 'Submitted! Admin will review.', 'success');
+    }
+  </script>
+</body>
+</html>
