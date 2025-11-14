@@ -1,25 +1,26 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Register as Candidate</title>
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase.js"></script>
+  <script src="script.js"></script>
 </head>
-<body onload="loadElection(); populateProvinces()">
+<body onload="populateProvinces()">
   <div class="container">
     <h1>Register as Candidate</h1>
-    <p>(Available only before 1 day of voting start)</p>
     <div id="msg"></div>
     <form onsubmit="event.preventDefault(); registerCandidate()">
       <div class="form-section">
-        <h3>Candidate Basic Information</h3>
-        <input type="text" id="fullName" placeholder="Full Name (legal as per citizenship)" required />
-        <input type="text" id="nickname" placeholder="Nickname / Common Name (optional)" />
-        <label>Date of Birth (for age verification):</label>
+        <h3>Personal Information</h3>
+        <input type="text" id="fullName" placeholder="Full Name" required />
+        <label>Date of Birth (must be 25+):</label>
         <input type="date" id="dob" required />
         <select id="gender" required>
-          <option value="">Gender</option>
+          <option value="">Select Gender</option>
           <option>Male</option>
           <option>Female</option>
           <option>Others</option>
@@ -32,40 +33,31 @@
         </select>
         <input type="tel" id="contact" placeholder="Contact Number" required />
         <input type="email" id="email" placeholder="Email Address" required />
-        <label>Profile Photo (passport-size):</label>
-        <input type="file" id="profilePhoto" accept="image/*" required />
-        <label>Address:</label>
-        <select id="province" onchange="populateDistricts()" required>
-          <option value="">Select Province</option>
-        </select>
-        <select id="district" onchange="populateMunicipalities()" required>
-          <option value="">Select District</option>
-        </select>
-        <select id="municipality" required>
-          <option value="">Select Municipality</option>
-        </select>
-        <input type="text" id="tole" placeholder="Tole / Street Name" required />
-        <input type="number" id="ward" placeholder="Ward Number" required />
+      </div>
+      <div class="form-section">
+        <h3>Location</h3>
+        <select id="province" onchange="populateDistricts()" required><option value="">Select Province</option></select>
+        <select id="district" onchange="populateMunicipalities()" required><option value="">Select District</option></select>
+        <select id="municipality" required><option value="">Select Municipality</option></select>
+        <input type="text" id="tole" placeholder="Tole / Ward No" required />
       </div>
       <div class="form-section">
         <h3>Educational and Professional Details</h3>
-        <input type="text" id="highestQual" placeholder="Highest Qualification (degree/diploma)" required />
+        <input type="text" id="highestQual" placeholder="Highest Qualification" required />
         <input type="text" id="institution" placeholder="Institution Name" required />
         <input type="number" id="yearCompletion" placeholder="Year of Completion" required />
-        <textarea id="profExp" placeholder="Professional Experience (work history)" required></textarea>
+        <textarea id="profExp" placeholder="Professional Experience" required></textarea>
         <input type="text" id="occupation" placeholder="Current Occupation" required />
-        <textarea id="skills" placeholder="Skills / Expertise (e.g., leadership)" required></textarea>
+        <textarea id="skills" placeholder="Skills / Expertise" required></textarea>
       </div>
       <div class="form-section">
         <h3>Political Information</h3>
-        <input type="text" id="party" placeholder="Political Party (or Independent)" required />
-        <label>Party Symbol:</label>
-        <input type="file" id="partySymbol" accept="image/*" />
-        <input type="text" id="position" placeholder="Position Contested (e.g., Mayor)" required />
+        <input type="text" id="party" placeholder="Political Party or Independent" required />
+        <input type="text" id="position" placeholder="Position Contested" required />
         <input type="text" id="wardConst" placeholder="Ward/Constituency Number" required />
-        <textarea id="prevRoles" placeholder="Previous Political Roles (if any)"></textarea>
+        <textarea id="prevRoles" placeholder="Previous Political Roles (optional)"></textarea>
         <textarea id="manifesto" placeholder="Manifesto Summary" required></textarea>
-        <input type="text" id="motto" placeholder="Campaign Motto / Slogan" required />
+        <input type="text" id="motto" placeholder="Campaign Motto" required />
       </div>
       <div class="form-section">
         <h3>Verification and Legal Details</h3>
@@ -76,128 +68,32 @@
           <option>Yes</option>
           <option>No</option>
         </select>
-        <label>If Yes, Clearance Certificate:</label>
-        <input type="file" id="clearanceCert" accept=".pdf,.jpg" />
-        <label>Affidavit (signed declaration):</label>
-        <input type="file" id="affidavit" accept=".pdf,.jpg" required />
         <label>Nomination Date:</label>
         <input type="date" id="nominationDate" required />
       </div>
       <div class="form-section">
         <h3>Campaign Finance Details</h3>
         <input type="number" id="budget" placeholder="Estimated Campaign Budget" required />
-        <input type="text" id="fundingSource" placeholder="Funding Source (e.g., self-funded)" required />
+        <input type="text" id="fundingSource" placeholder="Funding Source" required />
         <input type="text" id="bankAcct" placeholder="Bank Account for Campaign" required />
         <input type="text" id="auditor" placeholder="Auditor / Treasurer Name" required />
       </div>
       <div class="form-section">
-        <h3>Social Media & Public Outreach</h3>
-        <input type="url" id="fb" placeholder="Facebook Link" />
-        <input type="url" id="twitter" placeholder="X (Twitter) Link" />
-        <input type="url" id="website" placeholder="Website / Blog" />
-        <input type="url" id="youtube" placeholder="YouTube Channel" />
-        <input type="text" id="volunteerInfo" placeholder="Volunteer Contact Info" />
+        <h3>Social Media & Outreach</h3>
+        <input type="url" id="fb" placeholder="Facebook Link (optional)" />
+        <input type="url" id="twitter" placeholder="X (Twitter) Link (optional)" />
+        <input type="url" id="website" placeholder="Website / Blog (optional)" />
+        <input type="url" id="youtube" placeholder="YouTube Channel (optional)" />
+        <input type="text" id="volunteerInfo" placeholder="Volunteer Contact Info (optional)" />
       </div>
       <div class="form-section">
         <h3>Miscellaneous</h3>
         <textarea id="hobbies" placeholder="Hobbies / Interests (optional)"></textarea>
-        <textarea id="achievements" placeholder="Achievements / Awards"></textarea>
+        <textarea id="achievements" placeholder="Achievements / Awards (optional)"></textarea>
         <textarea id="vision" placeholder="Vision & Mission Statement" required></textarea>
       </div>
       <button type="submit" class="btn">Register as Candidate</button>
     </form>
   </div>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="supabase.js"></script>
-  <script src="script.js"></script>
-  <script>
-    async function registerCandidate() {
-      const required = ['fullName', 'dob', 'gender', 'marital', 'contact', 'email', 'profilePhoto', 'province', 'district', 'municipality', 'tole', 'ward', 'highestQual', 'institution', 'yearCompletion', 'profExp', 'occupation', 'skills', 'party', 'position', 'wardConst', 'manifesto', 'motto', 'citizenshipNo', 'criminalRecord', 'affidavit', 'nominationDate', 'budget', 'fundingSource', 'bankAcct', 'auditor', 'vision'];
-      for (let id of required) {
-        if (!document.getElementById(id).value) return showMsg('msg', `Missing: ${id}`, 'error');
-      }
-      const photoFile = document.getElementById('profilePhoto').files[0];
-      const symbolFile = document.getElementById('partySymbol').files[0];
-      const clearanceFile = document.getElementById('clearanceCert').files[0];
-      const affidavitFile = document.getElementById('affidavit').files[0];
-      let photoUrl = '', symbolUrl = '', clearanceUrl = '', affidavitUrl = '';
-      if (photoFile) {
-        const { data, error } = await supabase.storage.from('photos').upload(`profiles/${Date.now()}_${photoFile.name}`, photoFile);
-        if (error) return showMsg('msg', error.message, 'error');
-        photoUrl = supabase.storage.from('photos').getPublicUrl(data.path).data.publicUrl;
-      }
-      if (symbolFile) {
-        const { data, error } = await supabase.storage.from('photos').upload(`symbols/${Date.now()}_${symbolFile.name}`, symbolFile);
-        if (error) return showMsg('msg', error.message, 'error');
-        symbolUrl = supabase.storage.from('photos').getPublicUrl(data.path).data.publicUrl;
-      }
-      if (clearanceFile) {
-        const { data, error } = await supabase.storage.from('documents').upload(`clearance/${Date.now()}_${clearanceFile.name}`, clearanceFile);
-        if (error) return showMsg('msg', error.message, 'error');
-        clearanceUrl = supabase.storage.from('documents').getPublicUrl(data.path).data.publicUrl;
-      }
-      if (affidavitFile) {
-        const { data, error } = await supabase.storage.from('documents').upload(`affidavit/${Date.now()}_${affidavitFile.name}`, affidavitFile);
-        if (error) return showMsg('msg', error.message, 'error');
-        affidavitUrl = supabase.storage.from('documents').getPublicUrl(data.path).data.publicUrl;
-      }
-      const data = {
-        full_name: document.getElementById('fullName').value,
-        nickname: document.getElementById('nickname').value,
-        dob: document.getElementById('dob').value,
-        gender: document.getElementById('gender').value,
-        marital: document.getElementById('marital').value,
-        contact: document.getElementById('contact').value,
-        email: document.getElementById('email').value,
-        location: {
-          province: document.getElementById('province').value,
-          district: document.getElementById('district').value,
-          municipality: document.getElementById('municipality').value,
-          tole: document.getElementById('tole').value,
-          ward: document.getElementById('ward').value
-        },
-        highest_qual: document.getElementById('highestQual').value,
-        institution: document.getElementById('institution').value,
-        year_completion: document.getElementById('yearCompletion').value,
-        prof_exp: document.getElementById('profExp').value,
-        occupation: document.getElementById('occupation').value,
-        skills: document.getElementById('skills').value,
-        party: document.getElementById('party').value,
-        position_contested: document.getElementById('position').value,
-        ward_const: document.getElementById('wardConst').value,
-        prev_roles: document.getElementById('prevRoles').value,
-        manifesto: document.getElementById('manifesto').value,
-        motto: document.getElementById('motto').value,
-        citizenship_no: document.getElementById('citizenshipNo').value,
-        pan_id: document.getElementById('panId').value,
-        criminal_record: document.getElementById('criminalRecord').value,
-        nomination_date: document.getElementById('nominationDate').value,
-        budget: document.getElementById('budget').value,
-        funding_source: document.getElementById('fundingSource').value,
-        bank_acct: document.getElementById('bankAcct').value,
-        auditor: document.getElementById('auditor').value,
-        fb: document.getElementById('fb').value,
-        twitter: document.getElementById('twitter').value,
-        website: document.getElementById('website').value,
-        youtube: document.getElementById('youtube').value,
-        volunteer_info: document.getElementById('volunteerInfo').value,
-        hobbies: document.getElementById('hobbies').value,
-        achievements: document.getElementById('achievements').value,
-        vision: document.getElementById('vision').value
-      };
-      const { error } = await supabase.from('candidates').insert({
-        election_id: getUrlParam('eid'),
-        data,
-        photo_url: photoUrl,
-        symbol_url: symbolUrl,
-        clearance_url: clearanceUrl,
-        affidavit_url: affidavitUrl,
-        approved: false
-      });
-      if (error) return showMsg('msg', error.message, 'error');
-      showMsg('msg', 'Candidate registered! Pending admin approval.', 'success');
-      document.querySelector('form').reset();
-    }
-  </script>
 </body>
 </html>
