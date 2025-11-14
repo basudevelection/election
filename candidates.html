@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Candidates</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase.js"></script>
+  <script src="script.js"></script>
+</head>
+<body onload="loadElection(); loadCandidates()">
+  <div class="container">
+    <h1>Approved Candidates</h1>
+    <div id="candidateList" class="grid"></div>
+  </div>
+
+  <script>
+    async function loadCandidates() {
+      const { data } = await supabase
+        .from('candidates')
+        .select('*')
+        .eq('election_id', getUrlParam('eid'))
+        .eq('approved', true);
+
+      const list = document.getElementById('candidateList');
+      list.innerHTML = data.map(c => `
+        <div class="card">
+          <img src="${c.photo_url}" style="width:80px;height:80px;border-radius:50%;object-fit:cover;">
+          <h3>${c.data.full_name}</h3>
+          <p><strong>Position:</strong> ${c.data.position_contested}</p>
+          <p><strong>Vision:</strong> ${c.data.vision.substring(0, 100)}...</p>
+          <img src="${c.symbol_url}" style="width:60px;height:60px;">
+        </div>
+      `).join('');
+    }
+  </script>
+</body>
+</html>
