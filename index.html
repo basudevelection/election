@@ -17,6 +17,10 @@
     <div class="grid" id="electionList"></div>
   </div>
 
+  <footer style="text-align: center; padding: 20px; background: rgba(255,255,255,0.1); margin-top: 40px; border-top: 1px solid #fff;">
+    <p style="font-size: 0.9rem; color: #a8e6cf;">If you are the admin of this site, <a href="admin-login.html" style="color: #fff; text-decoration: underline; font-weight: bold;">click here to login</a>.</p>
+  </footer>
+
   <script>
     async function loadElections() {
       const { data } = await supabase.from('elections').select('*').order('start_date', { ascending: false });
