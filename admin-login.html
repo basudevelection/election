@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Admin Login</title>
   <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase.js"></script>
 </head>
 <body>
   <div class="container" style="max-width: 400px; margin-top: 120px;">
@@ -16,16 +18,14 @@
       <div id="msg"></div>
     </div>
   </div>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="supabase.js"></script>
   <script>
     async function login() {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: document.getElementById('email').value,
-        password: document.getElementById('pass').value
-      });
-      if (error) return document.getElementById('msg').innerHTML = `<div class="error">${error.message}</div>`;
-      localStorage.setItem('adminToken', data.session.access_token);
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('pass').value;
+      if (email !== 'admin@election.com' || password !== '@ElectionAdmin') {
+        return document.getElementById('msg').innerHTML = '<div class="error">Invalid credentials</div>';
+      }
+      localStorage.setItem('adminToken', 'admin-auth-' + Date.now());
       location.href = 'admin-dashboard.html';
     }
   </script>
