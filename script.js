@@ -1,7 +1,6 @@
 // ========================================
-// script.js – FINAL FIXED VERSION
+// script.js – FINAL UNIFIED & PRODUCTION-READY
 // ========================================
-
 const ADMIN_EMAIL = 'admin@election.com';
 let currentElection = null;
 let currentVoter = null;
@@ -38,51 +37,41 @@ function formatDate(date) {
 // NEPAL DATA LOADER
 // ========================================
 fetch('nepal-data.json')
-  .then(response => {
-    if (!response.ok) throw new Error('Failed to load nepal-data.json');
-    return response.json();
+  .then(r => {
+    if (!r.ok) throw new Error('Failed to load nepal-data.json');
+    return r.json();
   })
-  .then(data => {
-    nepalData = data.provinceList;
+  .then(d => {
+    nepalData = d.provinceList;
     console.log('Nepal data loaded:', nepalData.length, 'provinces');
     if (typeof populateProvinces === 'function') populateProvinces();
   })
   .catch(err => {
     console.error('JSON Load Error:', err);
-    showMsg('msg', 'Failed to load location data. Check nepal-data.json', 'error');
+    showMsg('msg', 'Location data failed to load', 'error');
   });
 
 // ========================================
-// LOCATION SELECT LOGIC
+// LOCATION SELECTS
 // ========================================
 function populateProvinces() {
   const select = document.getElementById('province');
   if (!select || nepalData.length === 0) return;
-
   select.innerHTML = '<option value="">Select Province</option>';
-  nepalData.forEach(p => {
-    select.add(new Option(p.name, p.id));
-  });
+  nepalData.forEach(p => select.add(new Option(p.name, p.id)));
 }
 
 function populateDistricts() {
   const provinceId = document.getElementById('province')?.value;
   const districtSelect = document.getElementById('district');
   const municipalitySelect = document.getElementById('municipality');
-
   if (!districtSelect || !municipalitySelect) return;
-
   districtSelect.innerHTML = '<option value="">Select District</option>';
   municipalitySelect.innerHTML = '<option value="">Select Municipality</option>';
-
   if (!provinceId) return;
-
   const province = nepalData.find(p => p.id == provinceId);
   if (!province) return;
-
-  province.districtList.forEach(d => {
-    districtSelect.add(new Option(d.name, d.id));
-  });
+  province.districtList.forEach(d => districtSelect.add(new Option(d.name, d.id)));
 }
 
 function populateMunicipalities() {
@@ -92,55 +81,58 @@ function populateMunicipalities() {
     municipalitySelect.innerHTML = '<option value="">Select Municipality</option>';
     return;
   }
-
   let district;
   for (let province of nepalData) {
     district = province.districtList.find(d => d.id == districtId);
     if (district) break;
   }
-
   if (!district) return;
-
   municipalitySelect.innerHTML = '<option value="">Select Municipality</option>';
-  district.municipalityList.forEach(m => {
-    municipalitySelect.add(new Option(m.name, m.id));
-  });
+  district.municipalityList.forEach(m => municipalitySelect.add(new Option(m.name, m.id)));
 }
 
 // ========================================
-// ELECTION PAGE LOGIC
+// ELECTION DASHBOARD LOGIC
 // ========================================
 async function loadElection() {
   const eid = getUrlParam('eid');
+  console.log('Loading election ID:', eid);
+
   if (!eid) {
-    window.location.href = 'index.html';
+    showError('Missing election ID in URL');
+    setTimeout(() => location.href = 'index.html', 2000);
     return;
   }
 
-  const { data, error } = await supabase
-    .from('elections')
-    .select('id, name, start_date, nomination_end, voting_end, status')
-    .eq('id', eid)
-    .single();
+  try {
+    const { data, error } = await supabase
+      .from('elections')
+      .select('id, name, start_date, nomination_end, voting_end, status')
+      .eq('id', eid)
+      .single();
 
-  if (error || !data) {
-    showMsg('msg', 'Election not found or invalid ID', 'error');
-    setTimeout(() => { window.location.href = 'index.html'; }, 2000);
-    return;
+    if (error || !data) {
+      console.error('Supabase error:', error);
+      showError('Election not found or invalid ID');
+      return;
+    }
+
+    currentElection = data;
+    document.title = data.name + ' - Election';
+    const nameEl = document.getElementById('electionName');
+    if (nameEl) nameEl.textContent = data.name;
+
+    updateElectionStatus();
+    setInterval(updateElectionStatus, 10000);
+
+  } catch (err) {
+    console.error('Load error:', err);
+    showError('Network error. Please try again.');
   }
-
-  currentElection = data;
-  document.title = data.name;
-  const nameEl = document.getElementById('electionName');
-  if (nameEl) nameEl.textContent = data.name;
-
-  updateElectionStatus();
-  loadCandidates();
 }
 
 function updateElectionStatus() {
   if (!currentElection) return;
-
   const now = new Date();
   const start = new Date(currentElection.start_date);
   const end = new Date(currentElection.voting_end);
@@ -150,41 +142,48 @@ function updateElectionStatus() {
   if (now >= start && now <= end) status = 'active';
   else if (now > end) status = 'ended';
 
-  // Show/hide sections
-  document.querySelectorAll('.nomination-only').forEach(el => {
-    el.style.display = now < nom ? 'block' : 'none';
-  });
-  document.querySelectorAll('.voting-only').forEach(el => {
-    el.style.display = status === 'active' ? 'block' : 'none';
-  });
-  document.querySelectorAll('.result-only').forEach(el => {
-    el.style.display = status === 'ended' ? 'block' : 'none';
-  });
-
   const statusEl = document.getElementById('electionStatus');
   if (statusEl) {
     statusEl.textContent = status.toUpperCase();
-    statusEl.style.color = status === 'active' ? 'green' : status === 'ended' ? 'gray' : 'orange';
+    statusEl.style.color = status === 'active' ? '#16a34a' : status === 'ended' ? '#6b7280' : '#ea580c';
   }
+
+  document.querySelectorAll('.nomination-only').forEach(el => {
+    el.classList.toggle('hidden', now >= nom);
+  });
+  document.querySelectorAll('.voting-only').forEach(el => {
+    el.classList.toggle('hidden', status !== 'active');
+  });
+  document.querySelectorAll('.result-only').forEach(el => {
+    el.classList.toggle('hidden', status !== 'ended');
+  });
 }
 
+function showError(msg) {
+  const el = document.getElementById('errorMsg');
+  if (el) {
+    el.textContent = msg;
+    el.style.display = 'block';
+  }
+  console.error('Error:', msg);
+}
+
+// ========================================
+// CANDIDATE & VOTING (vote.html)
+// ========================================
 async function loadCandidates() {
   if (!currentElection) return;
-
-  const { data, error } = await supabase
+  const { data } = await supabase
     .from('candidates')
-    .select('id, name, party, symbol')
+    .select('id, name, party')
     .eq('election_id', currentElection.id)
     .order('name');
-
-  if (error || !data || data.length === 0) {
-    document.getElementById('candidateList')?.innerHTML = '<p>No candidates registered yet.</p>';
-    return;
-  }
-
   const list = document.getElementById('candidateList');
   if (!list) return;
-
+  if (!data || data.length === 0) {
+    list.innerHTML = '<p>No candidates yet.</p>';
+    return;
+  }
   list.innerHTML = data.map(c => `
     <div class="candidate-card" onclick="selectCandidate('${c.id}', this)">
       <strong>${c.name}</strong><br>
@@ -193,15 +192,11 @@ async function loadCandidates() {
   `).join('');
 }
 
-// ========================================
-// VOTING LOGIC
-// ========================================
 let selectedCandidateId = null;
-
 function selectCandidate(id, el) {
-  document.querySelectorAll('.candidate-card').forEach(card => {
-    card.style.border = '2px solid #ddd';
-    card.style.background = '#fff';
+  document.querySelectorAll('.candidate-card').forEach(c => {
+    c.style.border = '2px solid #ddd';
+    c.style.background = '#fff';
   });
   el.style.border = '3px solid #1d4ed8';
   el.style.background = '#eff6ff';
@@ -209,35 +204,20 @@ function selectCandidate(id, el) {
 }
 
 async function submitVote() {
-  if (!selectedCandidateId) {
-    alert('Please select a candidate');
-    return;
-  }
-
+  if (!selectedCandidateId) return alert('Select a candidate');
   const voterId = localStorage.getItem('voterId');
-  if (!voterId) {
-    alert('Voter not verified');
-    return;
-  }
+  if (!voterId) return alert('Voter ID missing. Register first.');
 
   const { error } = await supabase
     .from('votes')
-    .insert({
-      election_id: currentElection.id,
-      voter_id: voterId,
-      candidate_id: selectedCandidateId
-    });
+    .insert({ election_id: currentElection.id, voter_id: voterId, candidate_id: selectedCandidateId });
 
   if (error) {
-    if (error.message.includes('duplicate')) {
-      alert('You have already voted in this election.');
-    } else {
-      alert('Vote failed: ' + error.message);
-    }
+    alert(error.message.includes('duplicate') ? 'Already voted!' : 'Vote failed');
   } else {
-    alert('Vote cast successfully!');
+    alert('Vote cast!');
     localStorage.removeItem('voterId');
-    setTimeout(() => { window.location.href = 'thank-you.html'; }, 1000);
+    setTimeout(() => location.href = 'thank-you.html', 1000);
   }
 }
 
@@ -245,14 +225,14 @@ async function submitVote() {
 // AUTO-INIT
 // ========================================
 document.addEventListener('DOMContentLoaded', () => {
-  const provinceEl = document.getElementById('province');
-  const districtEl = document.getElementById('district');
+  const province = document.getElementById('province');
+  const district = document.getElementById('district');
+  if (province) province.addEventListener('change', populateDistricts);
+  if (district) district.addEventListener('change', populateMunicipalities);
 
-  if (provinceEl) provinceEl.addEventListener('change', populateDistricts);
-  if (districtEl) districtEl.addEventListener('change', populateMunicipalities);
-
-  if (document.getElementById('electionName')) {
+  if (document.getElementById('electionName')) loadElection();
+  if (document.getElementById('candidateList')) {
     loadElection();
-    setInterval(updateElectionStatus, 10000);
+    setTimeout(loadCandidates, 600);
   }
 });
