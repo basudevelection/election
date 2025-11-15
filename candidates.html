@@ -1,45 +1,58 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Know Your Candidates</title>
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase.js"></script>
+  <script src="script.js"></script>
 </head>
 <body onload="loadElection(); loadCandidates()">
   <div class="container">
     <h1>Know Your Candidates</h1>
+    <div id="msg"></div>
     <div id="candidateList" class="grid"></div>
   </div>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="supabase.js"></script>
-  <script src="script.js"></script>
   <script>
     async function loadCandidates() {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('candidates')
         .select('*')
         .eq('election_id', getUrlParam('eid'))
         .eq('approved', true);
+      if (error) return showMsg('msg', error.message, 'error');
       const list = document.getElementById('candidateList');
       list.innerHTML = data.map(c => `
         <div class="card">
-          <img src="${c.photo_url || 'default.jpg'}" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover;">
-          <h3>${c.data.full_name} (${c.data.gender})</h3>
-          <p><strong>Email:</strong> ${c.data.email}</p>
-          <p><strong>Address:</strong> ${c.data.location.municipality}, ${c.data.location.district}, ${c.data.location.province}</p>
-          <p><strong>Highest Qualification:</strong> ${c.data.highest_qual} (${c.data.institution}, ${c.data.year_completion})</p>
-          <p><strong>Occupation:</strong> ${c.data.occupation}</p>
-          <p><strong>Skills:</strong> ${c.data.skills}</p>
-          <p><strong>Party:</strong> ${c.data.party}</p>
-          <img src="${c.symbol_url || 'default-symbol.jpg'}" style="width: 60px; height: 60px;">
-          <p><strong>Position:</strong> ${c.data.position_contested} (Ward: ${c.data.ward_const})</p>
-          <p><strong>Previous Roles:</strong> ${c.data.prev_roles || 'None'}</p>
-          <p><strong>Manifesto:</strong> ${c.data.manifesto.substring(0, 100)}...</p>
-          <p><strong>Motto:</strong> ${c.data.motto}</p>
-          <p><strong>Hobbies:</strong> ${c.data.hobbies || 'N/A'}</p>
-          <p><strong>Achievements:</strong> ${c.data.achievements || 'N/A'}</p>
-          <p><strong>Vision:</strong> ${c.data.vision.substring(0, 100)}...</p>
+          <h3>${c.full_name}</h3>
+          <p><strong>Party:</strong> ${c.party}</p>
+          <p><strong>Position:</strong> ${c.position_contested} (Ward: ${c.ward_const})</p>
+          <p><strong>Age:</strong> ${calculateAge(c.dob)}</p>
+          <p><strong>Gender:</strong> ${c.gender}</p>
+          <p><strong>Marital Status:</strong> ${c.marital}</p>
+          <p><strong>Contact:</strong> ${c.contact}</p>
+          <p><strong>Email:</strong> ${c.email}</p>
+          <p><strong>Location:</strong> ${c.location.municipality}, ${c.location.district}, ${c.location.province}</p>
+          <p><strong>Qualification:</strong> ${c.highest_qual} (${c.institution}, ${c.year_completion})</p>
+          <p><strong>Experience:</strong> ${c.prof_exp}</p>
+          <p><strong>Occupation:</strong> ${c.occupation}</p>
+          <p><strong>Skills:</strong> ${c.skills}</p>
+          <p><strong>Previous Roles:</strong> ${c.prev_roles || 'None'}</p>
+          <p><strong>Manifesto:</strong> ${c.manifesto}</p>
+          <p><strong>Motto:</strong> ${c.motto}</p>
+          <p><strong>Campaign Budget:</strong> ${c.budget}</p>
+          <p><strong>Funding Source:</strong> ${c.funding_source}</p>
+          <p><strong>Social Media:</strong> 
+            ${c.fb ? `<a href="${c.fb}" target="_blank">Facebook</a>` : 'N/A'}, 
+            ${c.twitter ? `<a href="${c.twitter}" target="_blank">Twitter</a>` : 'N/A'}, 
+            ${c.website ? `<a href="${c.website}" target="_blank">Website</a>` : 'N/A'}, 
+            ${c.youtube ? `<a href="${c.youtube}" target="_blank">YouTube</a>` : 'N/A'}
+          </p>
+          <p><strong>Hobbies:</strong> ${c.hobbies || 'N/A'}</p>
+          <p><strong>Achievements:</strong> ${c.achievements || 'N/A'}</p>
+          <p><strong>Vision:</strong> ${c.vision}</p>
         </div>
       `).join('');
     }
