@@ -59,7 +59,7 @@
         .eq('approved', true);
       if (error) return showMsg('msg', error.message, 'error');
       const list = document.getElementById('candidateList');
-      list.innerHTML = data.map((c, i) => `
+      list.innerHTML = data.map(c => `
         <div class="card" onclick="selectCandidate('${c.id}', this)">
           <h3>${c.full_name}</h3>
           <p>${c.party}</p>
