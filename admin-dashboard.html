@@ -44,7 +44,7 @@
   <div class="admin-container">
     <div class="admin-header">
       <h1>Admin Dashboard</h1>
-      <p>Full control over elections, voters, candidates, votes, and results</p>
+      <p>Manage elections, voters, candidates, votes, and results</p>
       <button class="admin-btn delete-btn" onclick="logout()">Logout</button>
     </div>
     <div class="admin-nav">
@@ -60,13 +60,13 @@
       <div id="electionMsg"></div>
       <div class="form-section">
         <label for="newElectionName">Election Name</label>
-        <input type="text" id="newElectionName" placeholder="e.g., National Election 2025">
+        <input type="text" id="newElectionName" placeholder="e.g., National Election 2025" required>
         <label for="newStartDate">Voting Start Date</label>
-        <input type="date" id="newStartDate" placeholder="Select start date">
-        <label for="newNomEnd">Nomination End Date (must be before start)</label>
-        <input type="date" id="newNomEnd" placeholder="Select nomination end">
-        <label for="newVoteEnd">Voting End Date (must be after start)</label>
-        <input type="date" id="newVoteEnd" placeholder="Select voting end">
+        <input type="date" id="newStartDate" required>
+        <label for="newNomEnd">Nomination End Date (before start)</label>
+        <input type="date" id="newNomEnd" required>
+        <label for="newVoteEnd">Voting End Date (after start)</label>
+        <input type="date" id="newVoteEnd" required>
         <button class="admin-btn approve-btn" onclick="createElection()">Create Election</button>
       </div>
       <button class="admin-btn" onclick="exportElections()">Export Elections as CSV</button>
@@ -82,7 +82,9 @@
             <th>Actions</th>
           </tr>
         </thead>
-        <tbody id="electionsTable"></tbody>
+        <tbody id="electionsTable">
+          <tr><td colspan="7" class="loading">Loading...</td></tr>
+        </tbody>
       </table>
       <div id="electionsPagination" class="pagination"></div>
     </div>
@@ -107,7 +109,9 @@
             <th>Actions</th>
           </tr>
         </thead>
-        <tbody id="votersTable"></tbody>
+        <tbody id="votersTable">
+          <tr><td colspan="7" class="loading">Loading...</td></tr>
+        </tbody>
       </table>
       <div id="votersPagination" class="pagination"></div>
     </div>
@@ -131,7 +135,9 @@
             <th>Actions</th>
           </tr>
         </thead>
-        <tbody id="candidatesTable"></tbody>
+        <tbody id="candidatesTable">
+          <tr><td colspan="6" class="loading">Loading...</td></tr>
+        </tbody>
       </table>
       <div id="candidatesPagination" class="pagination"></div>
     </div>
@@ -147,7 +153,9 @@
             <th>Actions</th>
           </tr>
         </thead>
-        <tbody id="votesTable"></tbody>
+        <tbody id="votesTable">
+          <tr><td colspan="4" class="loading">Loading...</td></tr>
+        </tbody>
       </table>
       <div id="votesPagination" class="pagination"></div>
     </div>
@@ -164,7 +172,9 @@
             <th>Actions</th>
           </tr>
         </thead>
-        <tbody id="resultsTable"></tbody>
+        <tbody id="resultsTable">
+          <tr><td colspan="4" class="loading">Loading...</td></tr>
+        </tbody>
       </table>
     </div>
     <div id="audit" class="admin-tab">
@@ -179,7 +189,9 @@
             <th onclick="sortTable('auditTable', 3)">Date</th>
           </tr>
         </thead>
-        <tbody id="auditTable"></tbody>
+        <tbody id="auditTable">
+          <tr><td colspan="4" class="loading">Loading...</td></tr>
+        </tbody>
       </table>
       <div id="auditPagination" class="pagination"></div>
     </div>
