@@ -6,7 +6,7 @@
   <title>Election Portal</title>
   <link rel="stylesheet" href="styles.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="supabase.js"></script>
+  <script type="module" src="supabase.js"></script>
   <script src="script.js"></script>
 </head>
 <body onload="loadElections()">
@@ -26,25 +26,28 @@
       try {
         const { data, count, error } = await supabase
           .from('elections')
-          .select('*', { count: 'exact' })
+          .select('id, name, start_date, status', { count: 'exact' })
           .order('start_date', { ascending: false });
         if (error) throw new Error(error.message);
         const list = document.getElementById('electionList');
-        document.getElementById('electionCount').textContent = count || 0;
-        if (data.length === 0) {
+        const countEl = document.getElementById('electionCount');
+        if (!list || !countEl) throw new Error('DOM elements not found');
+        countEl.textContent = count || 0;
+        if (!data || data.length === 0) {
           list.innerHTML = '<p>No elections found.</p>';
           return;
         }
         list.innerHTML = data.map(e => `
           <div class="card" onclick="location.href='election.html?eid=${e.id}'">
             <h3>${e.name}</h3>
-            <p>Start: ${new Date(e.start_date).toLocaleDateString()}</p>
+            <p>Start: ${new Date(e.start_date).toLocaleDateString('en-GB')}</p>
             <p>Status: <strong>${e.status.toUpperCase()}</strong></p>
           </div>
         `).join('');
       } catch (err) {
         console.error('Load elections error:', err);
-        document.getElementById('electionList').innerHTML = '<p>Failed to load elections.</p>';
+        const list = document.getElementById('electionList');
+        if (list) list.innerHTML = '<p>Failed to load elections. Please try again later.</p>';
         showMsg('errorMsg', `Error loading elections: ${err.message}`, 'error');
       }
     }
