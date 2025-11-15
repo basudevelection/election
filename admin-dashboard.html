@@ -6,32 +6,45 @@
   <title>Admin Dashboard</title>
   <link rel="stylesheet" href="styles.css">
   <style>
-    .admin-container { max-width: 1200px; margin: 0 auto; padding: 20px; background: linear-gradient(to bottom, #f0f4f8, #d9e2ec); border-radius: 10px; box-shadow: 0 0 20px rgba(0,0,0,0.1); }
+    .admin-container { max-width: 1400px; margin: 0 auto; padding: 20px; background: #f0f4f8; border-radius: 10px; box-shadow: 0 0 20px rgba(0,0,0,0.1); }
     .admin-header { text-align: center; margin-bottom: 30px; }
-    .admin-nav { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
+    .admin-nav { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
+    .admin-nav button { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; background: #e5e7eb; }
+    .admin-nav button.active { background: #4caf50; color: white; }
     .admin-tab { display: none; }
     .admin-tab.active { display: block; }
-    .admin-table { width: 100%; border-collapse: collapse; }
-    .admin-table th, .admin-table td { border: 1px solid #ddd; padding: 8px; }
-    .admin-table th { background: #f4f4f4; }
+    .admin-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    .admin-table th, .admin-table td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+    .admin-table th { background: #f4f4f4; cursor: pointer; }
+    .admin-table th:hover { background: #e0e0e0; }
     .admin-btn { padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; margin: 2px; }
     .approve-btn { background: #4caf50; color: white; }
     .delete-btn { background: #f44336; color: white; }
     .edit-btn { background: #2196f3; color: white; }
     .publish-btn { background: #ff9800; color: white; }
-    .form-section { background: white; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
-    .form-section input { margin: 8px 4px; }
-    .form-section label { display: block; margin-top: 8px; font-weight: bold; }
+    .view-btn { background: #6b7280; color: white; }
+    .form-section { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+    .form-section input, .form-section label { margin: 8px 0; }
+    .form-section label { display: block; font-weight: bold; }
+    .search-bar { margin-bottom: 20px; }
+    .search-bar input { width: 100%; padding: 10px; border-radius: 5px; border: 1px solid #ccc; }
+    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); }
+    .modal-content { background: white; margin: 5% auto; padding: 20px; width: 80%; max-width: 800px; border-radius: 10px; }
+    .close-btn { float: right; cursor: pointer; font-size: 20px; }
+    .loading { text-align: center; padding: 20px; }
+    .pagination { display: flex; justify-content: center; gap: 10px; margin-top: 20px; }
+    .pagination button { padding: 8px 16px; border: none; border-radius: 5px; cursor: pointer; background: #e5e7eb; }
+    .pagination button.active { background: #4caf50; color: white; }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase.js"></script>
   <script src="script.js"></script>
 </head>
-<body onload="loadAdminData()">
+<body onload="checkAdminAuth(); loadAdminData()">
   <div class="admin-container">
     <div class="admin-header">
       <h1>Admin Dashboard</h1>
-      <p>Manage elections, voters, candidates, votes, and results</p>
+      <p>Full control over elections, voters, candidates, votes, and results</p>
       <button class="admin-btn delete-btn" onclick="logout()">Logout</button>
     </div>
     <div class="admin-nav">
@@ -40,92 +53,141 @@
       <button onclick="openAdminTab('candidates')">Candidates</button>
       <button onclick="openAdminTab('votes')">Votes</button>
       <button onclick="openAdminTab('results')">Results</button>
+      <button onclick="openAdminTab('audit')">Audit Log</button>
     </div>
     <div id="elections" class="admin-tab active">
       <h2>Elections Management</h2>
       <div id="electionMsg"></div>
       <div class="form-section">
         <label for="newElectionName">Election Name</label>
-        <input type="text" id="newElectionName" placeholder="e.g., National Election 2025" style="width: 100%;">
+        <input type="text" id="newElectionName" placeholder="e.g., National Election 2025">
         <label for="newStartDate">Voting Start Date</label>
-        <input type="date" id="newStartDate" style="width: 48%; margin-right: 4%;">
-        <label for="newNomEnd">Nomination End Date</label>
-        <input type="date" id="newNomEnd" style="width: 48%;">
-        <label for="newVoteEnd">Voting End Date</label>
-        <input type="date" id="newVoteEnd" style="width: 48%; margin-right: 4%;">
+        <input type="date" id="newStartDate" placeholder="Select start date">
+        <label for="newNomEnd">Nomination End Date (must be before start)</label>
+        <input type="date" id="newNomEnd" placeholder="Select nomination end">
+        <label for="newVoteEnd">Voting End Date (must be after start)</label>
+        <input type="date" id="newVoteEnd" placeholder="Select voting end">
         <button class="admin-btn approve-btn" onclick="createElection()">Create Election</button>
       </div>
+      <button class="admin-btn" onclick="exportElections()">Export Elections as CSV</button>
       <table class="admin-table">
         <thead>
           <tr>
-            <th>Name</th>
-            <th>Start</th>
-            <th>Nom End</th>
-            <th>Vote End</th>
-            <th>Status</th>
+            <th onclick="sortTable('electionsTable', 0)">Name</th>
+            <th onclick="sortTable('electionsTable', 1)">Start</th>
+            <th onclick="sortTable('electionsTable', 2)">Nom End</th>
+            <th onclick="sortTable('electionsTable', 3)">Vote End</th>
+            <th onclick="sortTable('electionsTable', 4)">Status</th>
+            <th>Stats</th>
             <th>Actions</th>
           </tr>
         </thead>
         <tbody id="electionsTable"></tbody>
       </table>
+      <div id="electionsPagination" class="pagination"></div>
     </div>
     <div id="voters" class="admin-tab">
       <h2>Voters Management</h2>
+      <div id="voterMsg"></div>
+      <div class="search-bar">
+        <input type="text" id="voterSearch" placeholder="Search by name or voter ID" oninput="searchVoters()">
+      </div>
+      <button class="admin-btn approve-btn" onclick="bulkApproveVoters()">Bulk Approve Selected</button>
+      <button class="admin-btn delete-btn" onclick="bulkDeleteVoters()">Bulk Delete Selected</button>
+      <button class="admin-btn" onclick="exportVoters()">Export Voters as CSV</button>
       <table class="admin-table">
         <thead>
           <tr>
-            <th>Name</th>
-            <th>Voter ID</th>
-            <th>DOB</th>
-            <th>Citizenship</th>
-            <th>Approved</th>
+            <th><input type="checkbox" id="selectAllVoters" onclick="toggleSelectAll('voterSelect')"></th>
+            <th onclick="sortTable('votersTable', 1)">Name</th>
+            <th onclick="sortTable('votersTable', 2)">Voter ID</th>
+            <th onclick="sortTable('votersTable', 3)">DOB</th>
+            <th onclick="sortTable('votersTable', 4)">Citizenship</th>
+            <th onclick="sortTable('votersTable', 5)">Approved</th>
             <th>Actions</th>
           </tr>
         </thead>
         <tbody id="votersTable"></tbody>
       </table>
+      <div id="votersPagination" class="pagination"></div>
     </div>
     <div id="candidates" class="admin-tab">
       <h2>Candidates Management</h2>
+      <div id="candidateMsg"></div>
+      <div class="search-bar">
+        <input type="text" id="candidateSearch" placeholder="Search by name or party" oninput="searchCandidates()">
+      </div>
+      <button class="admin-btn approve-btn" onclick="bulkApproveCandidates()">Bulk Approve Selected</button>
+      <button class="admin-btn delete-btn" onclick="bulkDeleteCandidates()">Bulk Delete Selected</button>
+      <button class="admin-btn" onclick="exportCandidates()">Export Candidates as CSV</button>
       <table class="admin-table">
         <thead>
           <tr>
-            <th>Name</th>
-            <th>Party</th>
-            <th>Position</th>
-            <th>Approved</th>
+            <th><input type="checkbox" id="selectAllCandidates" onclick="toggleSelectAll('candidateSelect')"></th>
+            <th onclick="sortTable('candidatesTable', 1)">Name</th>
+            <th onclick="sortTable('candidatesTable', 2)">Party</th>
+            <th onclick="sortTable('candidatesTable', 3)">Position</th>
+            <th onclick="sortTable('candidatesTable', 4)">Approved</th>
             <th>Actions</th>
           </tr>
         </thead>
         <tbody id="candidatesTable"></tbody>
       </table>
+      <div id="candidatesPagination" class="pagination"></div>
     </div>
     <div id="votes" class="admin-tab">
       <h2>Votes Management</h2>
+      <div id="voteMsg"></div>
       <table class="admin-table">
         <thead>
           <tr>
-            <th>Voter ID</th>
-            <th>Candidate</th>
-            <th>Date</th>
+            <th onclick="sortTable('votesTable', 0)">Voter ID</th>
+            <th onclick="sortTable('votesTable', 1)">Candidate</th>
+            <th onclick="sortTable('votesTable', 2)">Date</th>
             <th>Actions</th>
           </tr>
         </thead>
         <tbody id="votesTable"></tbody>
       </table>
+      <div id="votesPagination" class="pagination"></div>
     </div>
     <div id="results" class="admin-tab">
       <h2>Results Management</h2>
+      <div id="resultMsg"></div>
+      <button class="admin-btn" onclick="exportResults()">Export Results as CSV</button>
       <table class="admin-table">
         <thead>
           <tr>
-            <th>Election</th>
-            <th>Results Published</th>
+            <th onclick="sortTable('resultsTable', 0)">Election</th>
+            <th onclick="sortTable('resultsTable', 1)">Results Published</th>
+            <th>Tally</th>
             <th>Actions</th>
           </tr>
         </thead>
         <tbody id="resultsTable"></tbody>
       </table>
+    </div>
+    <div id="audit" class="admin-tab">
+      <h2>Audit Log</h2>
+      <div id="auditMsg"></div>
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th onclick="sortTable('auditTable', 0)">Action</th>
+            <th onclick="sortTable('auditTable', 1)">Entity</th>
+            <th onclick="sortTable('auditTable', 2)">Details</th>
+            <th onclick="sortTable('auditTable', 3)">Date</th>
+          </tr>
+        </thead>
+        <tbody id="auditTable"></tbody>
+      </table>
+      <div id="auditPagination" class="pagination"></div>
+    </div>
+    <div id="modal" class="modal">
+      <div class="modal-content">
+        <span class="close-btn" onclick="closeModal()">&times;</span>
+        <div id="modalContent"></div>
+      </div>
     </div>
   </div>
 </body>
