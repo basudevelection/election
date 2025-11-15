@@ -1,3 +1,5 @@
+import { supabase } from './supabase.js';
+
 let nepalData = [];
 let currentElection = null;
 const ADMIN_EMAIL = 'admin@election.com';
@@ -260,14 +262,14 @@ async function findVoterId() {
   }
 }
 
-function checkAdminAuth() {
+async function checkAdminAuth() {
   const adminToken = localStorage.getItem('adminToken');
   if (!adminToken || !adminToken.startsWith('admin-auth-')) {
     location.href = 'admin-login.html';
   }
 }
 
-function logout() {
+async function logout() {
   localStorage.removeItem('adminToken');
   location.href = 'admin-login.html';
 }
@@ -1058,3 +1060,62 @@ document.addEventListener('DOMContentLoaded', () => {
   if (province) province.addEventListener('change', populateDistricts);
   if (district) district.addEventListener('change', populateMunicipalities);
 });
+
+export {
+  getUrlParam,
+  showMsg,
+  generateVoterId,
+  calculateAge,
+  formatDate,
+  populateProvinces,
+  populateDistricts,
+  populateMunicipalities,
+  loadElection,
+  updateElectionStatus,
+  registerVoter,
+  registerCandidate,
+  checkEligibility,
+  findVoterId,
+  checkAdminAuth,
+  logout,
+  logAudit,
+  loadAdminData,
+  openAdminTab,
+  loadElectionsAdmin,
+  createElection,
+  editElection,
+  deleteElection,
+  viewElectionStats,
+  loadVotersAdmin,
+  approveVoter,
+  unapproveVoter,
+  deleteVoter,
+  bulkApproveVoters,
+  bulkDeleteVoters,
+  viewVoterDetails,
+  searchVoters,
+  loadCandidatesAdmin,
+  approveCandidate,
+  unapproveCandidate,
+  deleteCandidate,
+  bulkApproveCandidates,
+  bulkDeleteCandidates,
+  viewCandidateDetails,
+  searchCandidates,
+  loadVotesAdmin,
+  deleteVote,
+  loadResultsAdmin,
+  publishResult,
+  unpublishResult,
+  viewResultTally,
+  loadAuditLog,
+  updatePagination,
+  toggleSelectAll,
+  closeModal,
+  exportElections,
+  exportVoters,
+  exportCandidates,
+  exportResults,
+  downloadCSV,
+  sortTable
+};
