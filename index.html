@@ -4,24 +4,93 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Election Portal</title>
-  <link rel="stylesheet" href="styles.css">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(to bottom, #a8e6cf, #dcedc1);
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      flex: 1;
+    }
+    h1 {
+      text-align: center;
+      color: #333;
+      font-size: 2.5rem;
+      margin-bottom: 20px;
+    }
+    .error {
+      background: #f8d7da;
+      color: #721c24;
+      padding: 10px;
+      border-radius: 5px;
+      margin-bottom: 20px;
+      display: none;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 20px;
+    }
+    .card {
+      background: rgba(255, 255, 255, 0.9);
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    .card:hover {
+      transform: translateY(-5px);
+    }
+    .card h3 {
+      margin: 0 0 10px;
+      color: #333;
+    }
+    .card p {
+      margin: 5px 0;
+      color: #555;
+    }
+    footer {
+      text-align: center;
+      padding: 20px;
+      background: rgba(255, 255, 255, 0.1);
+      border-top: 1px solid #fff;
+    }
+    footer a {
+      color: #fff;
+      text-decoration: underline;
+      font-weight: bold;
+    }
+  </style>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script type="module" src="supabase.js"></script>
-  <script src="script.js"></script>
+  <script type="module" src="script.js"></script>
 </head>
-<body onload="loadElections()">
+<body>
   <div class="container">
     <h1>Online Election System</h1>
     <p>Current Elections: <span id="electionCount">0</span></p>
-    <div id="errorMsg" class="error hidden"></div>
+    <div id="errorMsg" class="error"></div>
     <div id="electionList" class="grid">
       <p>Loading elections...</p>
     </div>
   </div>
-  <footer style="text-align: center; padding: 20px; background: rgba(255,255,255,0.1); margin-top: 40px; border-top: 1px solid #fff;">
-    <p style="font-size: 0.9rem; color: #a8e6cf;">If you are the admin, <a href="admin-login.html" style="color: #fff; text-decoration: underline; font-weight: bold;">click here to login</a>.</p>
+  <footer>
+    <p style="font-size: 0.9rem; color: #a8e6cf;">
+      If you are the admin, <a href="admin-login.html">click here to login</a>.
+    </p>
   </footer>
-  <script>
+  <script type="module">
+    import { supabase } from './supabase.js';
+
     async function loadElections() {
       try {
         const { data, count, error } = await supabase
@@ -48,9 +117,15 @@
         console.error('Load elections error:', err);
         const list = document.getElementById('electionList');
         if (list) list.innerHTML = '<p>Failed to load elections. Please try again later.</p>';
-        showMsg('errorMsg', `Error loading elections: ${err.message}`, 'error');
+        const errorMsg = document.getElementById('errorMsg');
+        if (errorMsg) {
+          errorMsg.textContent = `Error loading elections: ${err.message}`;
+          errorMsg.style.display = 'block';
+        }
       }
     }
+
+    document.addEventListener('DOMContentLoaded', loadElections);
   </script>
 </body>
 </html>
