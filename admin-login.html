@@ -3,30 +3,33 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin Login</title>
+  <title>Election Portal</title>
   <link rel="stylesheet" href="styles.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase.js"></script>
+  <script src="script.js"></script>
 </head>
-<body>
-  <div class="container" style="max-width: 400px; margin-top: 120px;">
-    <h1>Admin Login</h1>
-    <div class="form-section">
-      <input type="email" id="email" placeholder="Email" value="admin@election.com" />
-      <input type="password" id="pass" placeholder="Password" />
-      <button class="btn" onclick="login()">Login</button>
-      <div id="msg"></div>
-    </div>
+<body onload="loadElections()">
+  <div class="container">
+    <h1>Online Election System</h1>
+    <p>Current Elections: <span id="electionCount">Loading...</span></p>
+    <div id="electionList" class="grid"></div>
   </div>
+  <footer style="text-align: center; padding: 20px; background: rgba(255,255,255,0.1); margin-top: 40px; border-top: 1px solid #fff;">
+    <p style="font-size: 0.9rem; color: #a8e6cf;">If you are the admin, <a href="admin-login.html" style="color: #fff; text-decoration: underline; font-weight: bold;">click here to login</a>.</p>
+  </footer>
   <script>
-    async function login() {
-      const email = document.getElementById('email').value;
-      const password = document.getElementById('pass').value;
-      if (email !== 'admin@election.com' || password !== '@ElectionAdmin') {
-        return document.getElementById('msg').innerHTML = '<div class="error">Invalid credentials</div>';
-      }
-      localStorage.setItem('adminToken', 'admin-auth-' + Date.now());
-      location.href = 'admin-dashboard.html';
+    async function loadElections() {
+      const { data, count } = await supabase.from('elections').select('*', { count: 'exact' }).order('start_date', { ascending: false });
+      document.getElementById('electionCount').textContent = count || 0;
+      const list = document.getElementById('electionList');
+      list.innerHTML = data.map(e => `
+        <div class="card" onclick="location.href='election.html?eid=${e.id}'">
+          <h3>${e.name}</h3>
+          <p>Start: ${new Date(e.start_date).toLocaleDateString()}</p>
+          <p>Status: <strong>${e.status.toUpperCase()}</strong></p>
+        </div>
+      `).join('');
     }
   </script>
 </body>
