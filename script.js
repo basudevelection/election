@@ -19,6 +19,8 @@ function showMsg(id, msg, type = 'success') {
     el.innerHTML = `<div class="${type}">${msg}</div>`;
     el.style.display = 'block';
     setTimeout(() => el.style.display = 'none', 5000);
+  } else {
+    console.error(`Message element with ID ${id} not found`);
   }
 }
 
@@ -125,24 +127,24 @@ async function registerVoter() {
   const eid = getUrlParam('eid');
   const voterId = generateVoterId();
   const location = {
-    province: document.getElementById('province').options[document.getElementById('province').selectedIndex].text,
-    district: document.getElementById('district').options[document.getElementById('district').selectedIndex].text,
-    municipality: document.getElementById('municipality').options[document.getElementById('municipality').selectedIndex].text,
-    tole: document.getElementById('tole').value
+    province: document.getElementById('province')?.options[document.getElementById('province').selectedIndex]?.text,
+    district: document.getElementById('district')?.options[document.getElementById('district').selectedIndex]?.text,
+    municipality: document.getElementById('municipality')?.options[document.getElementById('municipality').selectedIndex]?.text,
+    tole: document.getElementById('tole')?.value
   };
   try {
     const { error } = await supabase.from('voters').insert({
       election_id: eid,
       voter_id: voterId,
-      full_name: document.getElementById('fullName').value,
-      birth_date: document.getElementById('dob').value,
+      full_name: document.getElementById('fullName')?.value,
+      birth_date: document.getElementById('dob')?.value,
       family: { 
-        father: document.getElementById('fatherName').value, 
-        mother: document.getElementById('motherName').value 
+        father: document.getElementById('fatherName')?.value, 
+        mother: document.getElementById('motherName')?.value 
       },
       location,
-      citizenship_no: document.getElementById('citizenshipNo').value,
-      citizenship_issue_date: document.getElementById('issueDate').value
+      citizenship_no: document.getElementById('citizenshipNo')?.value,
+      citizenship_issue_date: document.getElementById('issueDate')?.value
     });
     if (error) throw new Error(error.message);
     showMsg('msg', `Voter ID: <strong>${voterId}</strong><br>Save it securely!`, 'success');
@@ -156,53 +158,53 @@ async function registerVoter() {
 async function registerCandidate() {
   const eid = getUrlParam('eid');
   const location = {
-    province: document.getElementById('province').options[document.getElementById('province').selectedIndex].text,
-    district: document.getElementById('district').options[document.getElementById('district').selectedIndex].text,
-    municipality: document.getElementById('municipality').options[document.getElementById('municipality').selectedIndex].text,
-    tole: document.getElementById('tole').value
+    province: document.getElementById('province')?.options[document.getElementById('province').selectedIndex]?.text,
+    district: document.getElementById('district')?.options[document.getElementById('district').selectedIndex]?.text,
+    municipality: document.getElementById('municipality')?.options[document.getElementById('municipality').selectedIndex]?.text,
+    tole: document.getElementById('tole')?.value
   };
   try {
     const { data, error } = await supabase.from('candidates').insert({
       election_id: eid,
-      full_name: document.getElementById('fullName').value,
-      dob: document.getElementById('dob').value,
-      gender: document.getElementById('gender').value,
-      marital: document.getElementById('marital').value,
-      contact: document.getElementById('contact').value,
-      email: document.getElementById('email').value,
+      full_name: document.getElementById('fullName')?.value,
+      dob: document.getElementById('dob')?.value,
+      gender: document.getElementById('gender')?.value,
+      marital: document.getElementById('marital')?.value,
+      contact: document.getElementById('contact')?.value,
+      email: document.getElementById('email')?.value,
       location,
-      highest_qual: document.getElementById('highestQual').value,
-      institution: document.getElementById('institution').value,
-      year_completion: parseInt(document.getElementById('yearCompletion').value),
-      prof_exp: document.getElementById('profExp').value,
-      occupation: document.getElementById('occupation').value,
-      skills: document.getElementById('skills').value,
-      party: document.getElementById('party').value,
-      position_contested: document.getElementById('position').value,
-      ward_const: document.getElementById('wardConst').value,
-      prev_roles: document.getElementById('prevRoles').value,
-      manifesto: document.getElementById('manifesto').value,
-      motto: document.getElementById('motto').value,
-      citizenship_no: document.getElementById('citizenshipNo').value,
-      pan_id: document.getElementById('panId').value,
-      criminal_record: document.getElementById('criminalRecord').value,
-      nomination_date: document.getElementById('nominationDate').value,
-      budget: parseInt(document.getElementById('budget').value),
-      funding_source: document.getElementById('fundingSource').value,
-      bank_acct: document.getElementById('bankAcct').value,
-      auditor: document.getElementById('auditor').value,
-      fb: document.getElementById('fb').value,
-      twitter: document.getElementById('twitter').value,
-      website: document.getElementById('website').value,
-      youtube: document.getElementById('youtube').value,
-      volunteer_info: document.getElementById('volunteerInfo').value,
-      hobbies: document.getElementById('hobbies').value,
-      achievements: document.getElementById('achievements').value,
-      vision: document.getElementById('vision').value
+      highest_qual: document.getElementById('highestQual')?.value,
+      institution: document.getElementById('institution')?.value,
+      year_completion: parseInt(document.getElementById('yearCompletion')?.value) || null,
+      prof_exp: document.getElementById('profExp')?.value,
+      occupation: document.getElementById('occupation')?.value,
+      skills: document.getElementById('skills')?.value,
+      party: document.getElementById('party')?.value,
+      position_contested: document.getElementById('position')?.value,
+      ward_const: document.getElementById('wardConst')?.value,
+      prev_roles: document.getElementById('prevRoles')?.value,
+      manifesto: document.getElementById('manifesto')?.value,
+      motto: document.getElementById('motto')?.value,
+      citizenship_no: document.getElementById('citizenshipNo')?.value,
+      pan_id: document.getElementById('panId')?.value,
+      criminal_record: document.getElementById('criminalRecord')?.value,
+      nomination_date: document.getElementById('nominationDate')?.value,
+      budget: parseInt(document.getElementById('budget')?.value) || null,
+      funding_source: document.getElementById('fundingSource')?.value,
+      bank_acct: document.getElementById('bankAcct')?.value,
+      auditor: document.getElementById('auditor')?.value,
+      fb: document.getElementById('fb')?.value,
+      twitter: document.getElementById('twitter')?.value,
+      website: document.getElementById('website')?.value,
+      youtube: document.getElementById('youtube')?.value,
+      volunteer_info: document.getElementById('volunteerInfo')?.value,
+      hobbies: document.getElementById('hobbies')?.value,
+      achievements: document.getElementById('achievements')?.value,
+      vision: document.getElementById('vision')?.value
     }).select('id');
     if (error) throw new Error(error.message);
     showMsg('msg', 'Candidate registered. Awaiting admin approval.', 'success');
-    logAudit('register_candidate', 'candidates', data[0].id, { name: document.getElementById('fullName').value });
+    logAudit('register_candidate', 'candidates', data[0].id, { name: document.getElementById('fullName')?.value });
   } catch (err) {
     console.error('Register candidate error:', err);
     showMsg('msg', `Error registering candidate: ${err.message}`, 'error');
@@ -210,8 +212,8 @@ async function registerCandidate() {
 }
 
 async function checkEligibility() {
-  const vid = document.getElementById('voterId').value.trim();
-  if (vid.length !== 10 || !/^\d+$/.test(vid)) {
+  const vid = document.getElementById('voterId')?.value.trim();
+  if (!vid || vid.length !== 10 || !/^\d+$/.test(vid)) {
     return showMsg('msg', 'Please enter a valid 10-digit Voter ID', 'error');
   }
   try {
@@ -236,8 +238,8 @@ async function checkEligibility() {
 }
 
 async function findVoterId() {
-  const citizenshipNo = document.getElementById('citizenshipNo').value.trim();
-  const dob = document.getElementById('dob').value;
+  const citizenshipNo = document.getElementById('citizenshipNo')?.value.trim();
+  const dob = document.getElementById('dob')?.value;
   if (!citizenshipNo || !dob) {
     return showMsg('msg', 'Please fill all fields', 'error');
   }
@@ -303,17 +305,24 @@ async function loadAdminData() {
 function openAdminTab(tabName) {
   document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.admin-nav button').forEach(b => b.classList.remove('active'));
-  document.getElementById(tabName).classList.add('active');
-  document.querySelector(`button[onclick="openAdminTab('${tabName}')"]`).classList.add('active');
+  const tab = document.getElementById(tabName);
+  const button = document.querySelector(`button[onclick="openAdminTab('${tabName}')"]`);
+  if (tab && button) {
+    tab.classList.add('active');
+    button.classList.add('active');
+  }
 }
 
 async function loadElectionsAdmin() {
   try {
-    const { data } = await supabase.from('elections').select('*').order('created_at', { ascending: false });
-    const totalPages = Math.ceil(data.length / ITEMS_PER_PAGE);
+    const { data, error } = await supabase.from('elections').select('id, name, start_date, nomination_end, voting_end, status').order('created_at', { ascending: false });
+    if (error) throw new Error(error.message);
+    const totalPages = Math.ceil((data?.length || 0) / ITEMS_PER_PAGE);
     const start = (currentPage.elections - 1) * ITEMS_PER_PAGE;
     const end = start + ITEMS_PER_PAGE;
-    document.getElementById('electionsTable').innerHTML = data.length === 0
+    const table = document.getElementById('electionsTable');
+    if (!table) throw new Error('Elections table not found');
+    table.innerHTML = !data || data.length === 0
       ? '<tr><td colspan="7">No elections found.</td></tr>'
       : data.slice(start, end).map(e => `
         <tr>
@@ -332,7 +341,8 @@ async function loadElectionsAdmin() {
     updatePagination('electionsPagination', totalPages, 'elections', loadElectionsAdmin);
   } catch (err) {
     console.error('Load elections admin error:', err);
-    document.getElementById('electionsTable').innerHTML = '<tr><td colspan="7">Failed to load elections.</td></tr>';
+    const table = document.getElementById('electionsTable');
+    if (table) table.innerHTML = '<tr><td colspan="7">Failed to load elections. Please try again.</td></tr>';
     showMsg('electionMsg', `Error loading elections: ${err.message}`, 'error');
   }
 }
@@ -414,9 +424,9 @@ async function viewElectionStats(id) {
     const { count: voteCount } = await supabase.from('votes').select('*', { count: 'exact' }).eq('election_id', id);
     document.getElementById('modalContent').innerHTML = `
       <h2>${election.name} Stats</h2>
-      <p><strong>Total Voters:</strong> ${voterCount}</p>
-      <p><strong>Total Candidates:</strong> ${candidateCount}</p>
-      <p><strong>Total Votes Cast:</strong> ${voteCount}</p>
+      <p><strong>Total Voters:</strong> ${voterCount || 0}</p>
+      <p><strong>Total Candidates:</strong> ${candidateCount || 0}</p>
+      <p><strong>Total Votes Cast:</strong> ${voteCount || 0}</p>
       <p><strong>Turnout:</strong> ${voterCount ? ((voteCount / voterCount) * 100).toFixed(2) : 0}%</p>
     `;
     document.getElementById('modal').style.display = 'block';
@@ -428,11 +438,14 @@ async function viewElectionStats(id) {
 
 async function loadVotersAdmin() {
   try {
-    const { data } = await supabase.from('voters').select('*').order('created_at', { ascending: false });
-    const totalPages = Math.ceil(data.length / ITEMS_PER_PAGE);
+    const { data, error } = await supabase.from('voters').select('id, full_name, voter_id, birth_date, citizenship_no, approved').order('created_at', { ascending: false });
+    if (error) throw new Error(error.message);
+    const totalPages = Math.ceil((data?.length || 0) / ITEMS_PER_PAGE);
     const start = (currentPage.voters - 1) * ITEMS_PER_PAGE;
     const end = start + ITEMS_PER_PAGE;
-    document.getElementById('votersTable').innerHTML = data.length === 0
+    const table = document.getElementById('votersTable');
+    if (!table) throw new Error('Voters table not found');
+    table.innerHTML = !data || data.length === 0
       ? '<tr><td colspan="7">No voters found.</td></tr>'
       : data.slice(start, end).map(v => `
         <tr>
@@ -454,7 +467,8 @@ async function loadVotersAdmin() {
     updatePagination('votersPagination', totalPages, 'voters', loadVotersAdmin);
   } catch (err) {
     console.error('Load voters admin error:', err);
-    document.getElementById('votersTable').innerHTML = '<tr><td colspan="7">Failed to load voters.</td></tr>';
+    const table = document.getElementById('votersTable');
+    if (table) table.innerHTML = '<tr><td colspan="7">Failed to load voters. Please try again.</td></tr>';
     showMsg('voterMsg', `Error loading voters: ${err.message}`, 'error');
   }
 }
@@ -547,14 +561,17 @@ async function viewVoterDetails(id) {
 }
 
 async function searchVoters() {
-  const query = document.getElementById('voterSearch').value.toLowerCase();
+  const query = document.getElementById('voterSearch')?.value.toLowerCase();
   try {
-    const { data } = await supabase.from('voters').select('*').order('created_at', { ascending: false });
+    const { data, error } = await supabase.from('voters').select('id, full_name, voter_id, birth_date, citizenship_no, approved').order('created_at', { ascending: false });
+    if (error) throw new Error(error.message);
     const filtered = data.filter(v => v.full_name.toLowerCase().includes(query) || v.voter_id.includes(query));
     const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
     const start = (currentPage.voters - 1) * ITEMS_PER_PAGE;
     const end = start + ITEMS_PER_PAGE;
-    document.getElementById('votersTable').innerHTML = filtered.length === 0
+    const table = document.getElementById('votersTable');
+    if (!table) throw new Error('Voters table not found');
+    table.innerHTML = filtered.length === 0
       ? '<tr><td colspan="7">No voters found.</td></tr>'
       : filtered.slice(start, end).map(v => `
         <tr>
@@ -576,18 +593,22 @@ async function searchVoters() {
     updatePagination('votersPagination', totalPages, 'voters', loadVotersAdmin);
   } catch (err) {
     console.error('Search voters error:', err);
-    document.getElementById('votersTable').innerHTML = '<tr><td colspan="7">Failed to search voters.</td></tr>';
+    const table = document.getElementById('votersTable');
+    if (table) table.innerHTML = '<tr><td colspan="7">Failed to search voters. Please try again.</td></tr>';
     showMsg('voterMsg', `Error searching voters: ${err.message}`, 'error');
   }
 }
 
 async function loadCandidatesAdmin() {
   try {
-    const { data } = await supabase.from('candidates').select('*').order('created_at', { ascending: false });
-    const totalPages = Math.ceil(data.length / ITEMS_PER_PAGE);
+    const { data, error } = await supabase.from('candidates').select('id, full_name, party, position_contested, approved').order('created_at', { ascending: false });
+    if (error) throw new Error(error.message);
+    const totalPages = Math.ceil((data?.length || 0) / ITEMS_PER_PAGE);
     const start = (currentPage.candidates - 1) * ITEMS_PER_PAGE;
     const end = start + ITEMS_PER_PAGE;
-    document.getElementById('candidatesTable').innerHTML = data.length === 0
+    const table = document.getElementById('candidatesTable');
+    if (!table) throw new Error('Candidates table not found');
+    table.innerHTML = !data || data.length === 0
       ? '<tr><td colspan="6">No candidates found.</td></tr>'
       : data.slice(start, end).map(c => `
         <tr>
@@ -608,7 +629,8 @@ async function loadCandidatesAdmin() {
     updatePagination('candidatesPagination', totalPages, 'candidates', loadCandidatesAdmin);
   } catch (err) {
     console.error('Load candidates admin error:', err);
-    document.getElementById('candidatesTable').innerHTML = '<tr><td colspan="6">Failed to load candidates.</td></tr>';
+    const table = document.getElementById('candidatesTable');
+    if (table) table.innerHTML = '<tr><td colspan="6">Failed to load candidates. Please try again.</td></tr>';
     showMsg('candidateMsg', `Error loading candidates: ${err.message}`, 'error');
   }
 }
@@ -728,14 +750,17 @@ async function viewCandidateDetails(id) {
 }
 
 async function searchCandidates() {
-  const query = document.getElementById('candidateSearch').value.toLowerCase();
+  const query = document.getElementById('candidateSearch')?.value.toLowerCase();
   try {
-    const { data } = await supabase.from('candidates').select('*').order('created_at', { ascending: false });
+    const { data, error } = await supabase.from('candidates').select('id, full_name, party, position_contested, approved').order('created_at', { ascending: false });
+    if (error) throw new Error(error.message);
     const filtered = data.filter(c => c.full_name.toLowerCase().includes(query) || c.party.toLowerCase().includes(query));
     const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
     const start = (currentPage.candidates - 1) * ITEMS_PER_PAGE;
     const end = start + ITEMS_PER_PAGE;
-    document.getElementById('candidatesTable').innerHTML = filtered.length === 0
+    const table = document.getElementById('candidatesTable');
+    if (!table) throw new Error('Candidates table not found');
+    table.innerHTML = filtered.length === 0
       ? '<tr><td colspan="6">No candidates found.</td></tr>'
       : filtered.slice(start, end).map(c => `
         <tr>
@@ -756,18 +781,22 @@ async function searchCandidates() {
     updatePagination('candidatesPagination', totalPages, 'candidates', loadCandidatesAdmin);
   } catch (err) {
     console.error('Search candidates error:', err);
-    document.getElementById('candidatesTable').innerHTML = '<tr><td colspan="6">Failed to search candidates.</td></tr>';
+    const table = document.getElementById('candidatesTable');
+    if (table) table.innerHTML = '<tr><td colspan="6">Failed to search candidates. Please try again.</td></tr>';
     showMsg('candidateMsg', `Error searching candidates: ${err.message}`, 'error');
   }
 }
 
 async function loadVotesAdmin() {
   try {
-    const { data } = await supabase.from('votes').select('*, candidates(full_name, party), voters(full_name)').order('created_at', { ascending: false });
-    const totalPages = Math.ceil(data.length / ITEMS_PER_PAGE);
+    const { data, error } = await supabase.from('votes').select('id, voter_id, candidates(full_name, party), created_at').order('created_at', { ascending: false });
+    if (error) throw new Error(error.message);
+    const totalPages = Math.ceil((data?.length || 0) / ITEMS_PER_PAGE);
     const start = (currentPage.votes - 1) * ITEMS_PER_PAGE;
     const end = start + ITEMS_PER_PAGE;
-    document.getElementById('votesTable').innerHTML = data.length === 0
+    const table = document.getElementById('votesTable');
+    if (!table) throw new Error('Votes table not found');
+    table.innerHTML = !data || data.length === 0
       ? '<tr><td colspan="4">No votes found.</td></tr>'
       : data.slice(start, end).map(v => `
         <tr>
@@ -780,7 +809,8 @@ async function loadVotesAdmin() {
     updatePagination('votesPagination', totalPages, 'votes', loadVotesAdmin);
   } catch (err) {
     console.error('Load votes admin error:', err);
-    document.getElementById('votesTable').innerHTML = '<tr><td colspan="4">Failed to load votes.</td></tr>';
+    const table = document.getElementById('votesTable');
+    if (table) table.innerHTML = '<tr><td colspan="4">Failed to load votes. Please try again.</td></tr>';
     showMsg('voteMsg', `Error loading votes: ${err.message}`, 'error');
   }
 }
@@ -800,8 +830,11 @@ async function deleteVote(id) {
 
 async function loadResultsAdmin() {
   try {
-    const { data } = await supabase.from('elections').select('*').order('created_at', { ascending: false });
-    document.getElementById('resultsTable').innerHTML = data.length === 0
+    const { data, error } = await supabase.from('elections').select('id, name, result_approved').order('created_at', { ascending: false });
+    if (error) throw new Error(error.message);
+    const table = document.getElementById('resultsTable');
+    if (!table) throw new Error('Results table not found');
+    table.innerHTML = !data || data.length === 0
       ? '<tr><td colspan="4">No elections found.</td></tr>'
       : data.map(e => `
         <tr>
@@ -817,7 +850,8 @@ async function loadResultsAdmin() {
       `).join('');
   } catch (err) {
     console.error('Load results admin error:', err);
-    document.getElementById('resultsTable').innerHTML = '<tr><td colspan="4">Failed to load results.</td></tr>';
+    const table = document.getElementById('resultsTable');
+    if (table) table.innerHTML = '<tr><td colspan="4">Failed to load results. Please try again.</td></tr>';
     showMsg('resultMsg', `Error loading results: ${err.message}`, 'error');
   }
 }
@@ -848,8 +882,10 @@ async function unpublishResult(id) {
 
 async function viewResultTally(id) {
   try {
-    const { data: votes } = await supabase.from('votes').select('candidate_id').eq('election_id', id);
-    const { data: candidates } = await supabase.from('candidates').select('*').eq('election_id', id).eq('approved', true);
+    const { data: votes, error: votesError } = await supabase.from('votes').select('candidate_id').eq('election_id', id);
+    if (votesError) throw new Error(votesError.message);
+    const { data: candidates, error: candidatesError } = await supabase.from('candidates').select('id, full_name, party').eq('election_id', id).eq('approved', true);
+    if (candidatesError) throw new Error(candidatesError.message);
     const tally = {};
     votes.forEach(v => tally[v.candidate_id] = (tally[v.candidate_id] || 0) + 1);
     const results = candidates.map(c => ({ ...c, votes: tally[c.id] || 0 })).sort((a, b) => b.votes - a.votes);
@@ -868,11 +904,14 @@ async function viewResultTally(id) {
 
 async function loadAuditLog() {
   try {
-    const { data } = await supabase.from('audit_log').select('*').order('created_at', { ascending: false });
-    const totalPages = Math.ceil(data.length / ITEMS_PER_PAGE);
+    const { data, error } = await supabase.from('audit_log').select('action, entity_type, details, created_at').order('created_at', { ascending: false });
+    if (error) throw new Error(error.message);
+    const totalPages = Math.ceil((data?.length || 0) / ITEMS_PER_PAGE);
     const start = (currentPage.audit - 1) * ITEMS_PER_PAGE;
     const end = start + ITEMS_PER_PAGE;
-    document.getElementById('auditTable').innerHTML = data.length === 0
+    const table = document.getElementById('auditTable');
+    if (!table) throw new Error('Audit table not found');
+    table.innerHTML = !data || data.length === 0
       ? '<tr><td colspan="4">No audit logs found.</td></tr>'
       : data.slice(start, end).map(a => `
         <tr>
@@ -885,7 +924,8 @@ async function loadAuditLog() {
     updatePagination('auditPagination', totalPages, 'audit', loadAuditLog);
   } catch (err) {
     console.error('Load audit log error:', err);
-    document.getElementById('auditTable').innerHTML = '<tr><td colspan="4">Failed to load audit logs.</td></tr>';
+    const table = document.getElementById('auditTable');
+    if (table) table.innerHTML = '<tr><td colspan="4">Failed to load audit logs. Please try again.</td></tr>';
     showMsg('auditMsg', `Error loading audit logs: ${err.message}`, 'error');
   }
 }
@@ -919,7 +959,8 @@ function closeModal() {
 
 async function exportElections() {
   try {
-    const { data } = await supabase.from('elections').select('*');
+    const { data, error } = await supabase.from('elections').select('name, start_date, nomination_end, voting_end, status');
+    if (error) throw new Error(error.message);
     const csv = [
       'Name,Start Date,Nomination End,Voting End,Status',
       ...data.map(e => `"${e.name}",${e.start_date},${e.nomination_end},${e.voting_end},${e.status}`)
@@ -933,7 +974,8 @@ async function exportElections() {
 
 async function exportVoters() {
   try {
-    const { data } = await supabase.from('voters').select('*');
+    const { data, error } = await supabase.from('voters').select('full_name, voter_id, birth_date, citizenship_no, approved, location');
+    if (error) throw new Error(error.message);
     const csv = [
       'Name,Voter ID,DOB,Citizenship,Approved,Location',
       ...data.map(v => `"${v.full_name}",${v.voter_id},${v.birth_date},${v.citizenship_no},${v.approved},${v.location.municipality} ${v.location.district}`)
@@ -947,7 +989,8 @@ async function exportVoters() {
 
 async function exportCandidates() {
   try {
-    const { data } = await supabase.from('candidates').select('*');
+    const { data, error } = await supabase.from('candidates').select('full_name, party, position_contested, approved');
+    if (error) throw new Error(error.message);
     const csv = [
       'Name,Party,Position,Approved',
       ...data.map(c => `"${c.full_name}",${c.party},${c.position_contested},${c.approved}`)
@@ -961,11 +1004,14 @@ async function exportCandidates() {
 
 async function exportResults() {
   try {
-    const { data: elections } = await supabase.from('elections').select('id, name');
+    const { data: elections, error: electionsError } = await supabase.from('elections').select('id, name');
+    if (electionsError) throw new Error(electionsError.message);
     let csv = 'Election,Candidate,Party,Votes\n';
     for (const e of elections) {
-      const { data: votes } = await supabase.from('votes').select('candidate_id').eq('election_id', e.id);
-      const { data: candidates } = await supabase.from('candidates').select('id, full_name, party').eq('election_id', e.id).eq('approved', true);
+      const { data: votes, error: votesError } = await supabase.from('votes').select('candidate_id').eq('election_id', e.id);
+      if (votesError) throw new Error(votesError.message);
+      const { data: candidates, error: candidatesError } = await supabase.from('candidates').select('id, full_name, party').eq('election_id', e.id).eq('approved', true);
+      if (candidatesError) throw new Error(candidatesError.message);
       const tally = {};
       votes.forEach(v => tally[v.candidate_id] = (tally[v.candidate_id] || 0) + 1);
       candidates.forEach(c => {
